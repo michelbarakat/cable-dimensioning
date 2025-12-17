@@ -9,6 +9,185 @@ const SAMPLE_DATA = {
   maxVoltageDrop: "3",
 };
 
+type ResultBoxProps = {
+  result: number | null;
+};
+
+function ResultBox({ result }: ResultBoxProps) {
+  const getBoxClasses = () => {
+    if (result === null) return "bg-gray-900/50 border-gray-700";
+    if (result >= 0) return "bg-gray-900 border-gray-700";
+    return "bg-red-900/30 border-red-700";
+  };
+
+  const renderContent = () => {
+    if (result === null) {
+      return (
+        <p className="text-gray-500 text-sm">
+          <strong className="text-gray-400">Result: </strong>—
+        </p>
+      );
+    }
+    if (result >= 0) {
+      return (
+        <p className="text-white">
+          <strong className="text-blue-400">Result: </strong>
+          <span className="text-xl font-semibold">{result.toFixed(2)} mm²</span>
+        </p>
+      );
+    }
+    return (
+      <p className="text-red-300">
+        <strong>Error: </strong>Invalid input
+      </p>
+    );
+  };
+
+  return (
+    <div className={`h-[56px] flex items-center p-3 rounded-lg border whitespace-nowrap ${getBoxClasses()}`}>
+      {renderContent()}
+    </div>
+  );
+}
+
+type NumberInputProps = {
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function NumberInput({ id, name, label, value, onChange }: NumberInputProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-gray-300 font-medium">
+        {label}
+      </label>
+      <input
+        id={id}
+        name={name}
+        type="text"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => {
+          const inputValue = e.target.value;
+          if (isValidNumberInput(inputValue)) {
+            onChange(inputValue);
+          }
+        }}
+        className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+      />
+    </div>
+  );
+}
+
+type FormFieldsProps = {
+  current: string;
+  length: string;
+  resistivity: string;
+  maxVoltageDrop: string;
+  onCurrentChange: (value: string) => void;
+  onLengthChange: (value: string) => void;
+  onResistivityChange: (value: string) => void;
+  onMaxVoltageDropChange: (value: string) => void;
+  onCalculate: () => void;
+  cableEngine: CableEngine | null;
+};
+
+function FormFields({
+  current,
+  length,
+  resistivity,
+  maxVoltageDrop,
+  onCurrentChange,
+  onLengthChange,
+  onResistivityChange,
+  onMaxVoltageDropChange,
+  onCalculate,
+  cableEngine,
+}: FormFieldsProps) {
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <NumberInput
+          id="cross-section-single-current"
+          name="cross-section-single-current"
+          label="Current (A)"
+          value={current}
+          onChange={onCurrentChange}
+        />
+        <NumberInput
+          id="cross-section-single-length"
+          name="cross-section-single-length"
+          label="Length (m)"
+          value={length}
+          onChange={onLengthChange}
+        />
+        <NumberInput
+          id="cross-section-single-resistivity"
+          name="cross-section-single-resistivity"
+          label="Resistivity (Ω·mm²/m)"
+          value={resistivity}
+          onChange={onResistivityChange}
+        />
+        <NumberInput
+          id="cross-section-single-maxVoltageDrop"
+          name="cross-section-single-maxVoltageDrop"
+          label="Max Voltage Drop (V)"
+          value={maxVoltageDrop}
+          onChange={onMaxVoltageDropChange}
+        />
+      </div>
+      <button
+        onClick={onCalculate}
+        className="mt-6 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-lg h-12 cursor-pointer text-white font-semibold transition-colors shadow-lg hover:shadow-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!cableEngine}
+      >
+        Calculate Cross-Section
+      </button>
+    </>
+  );
+}
+
+type SampleDataBoxProps = {
+  onApply: () => void;
+};
+
+function SampleDataBox({ onApply }: SampleDataBoxProps) {
+  return (
+    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 shadow-lg">
+      <div className="text-xs text-gray-400 mb-2 font-semibold">Sample Data</div>
+      <table className="text-xs text-gray-300 mb-2">
+        <tbody>
+          <tr>
+            <td className="pr-2">Current:</td>
+            <td className="font-mono">{SAMPLE_DATA.current} A</td>
+          </tr>
+          <tr>
+            <td className="pr-2">Length:</td>
+            <td className="font-mono">{SAMPLE_DATA.length} m</td>
+          </tr>
+          <tr>
+            <td className="pr-2">Resistivity:</td>
+            <td className="font-mono">{SAMPLE_DATA.resistivity}</td>
+          </tr>
+          <tr>
+            <td className="pr-2">Max ΔV:</td>
+            <td className="font-mono">{SAMPLE_DATA.maxVoltageDrop} V</td>
+          </tr>
+        </tbody>
+      </table>
+      <button
+        onClick={onApply}
+        className="w-full text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition-colors cursor-pointer"
+      >
+        Apply
+      </button>
+    </div>
+  );
+}
+
 export default function Single({
   cableEngine = null,
 }: {
@@ -50,148 +229,24 @@ export default function Single({
   return (
     <div className="flex gap-4 items-start">
       <div className="flex-1 bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-      <div className="flex items-center gap-4 mb-6">
-        <h3 className="text-2xl font-bold flex-1 text-white">Single-Phase Cross-Section</h3>
-        <div
-          className={`h-[56px] flex items-center p-3 rounded-lg border whitespace-nowrap ${
-            result === null
-              ? "bg-gray-900/50 border-gray-700"
-              : result !== null && result >= 0
-                ? "bg-gray-900 border-gray-700"
-                : "bg-red-900/30 border-red-700"
-          }`}
-        >
-          {result === null ? (
-            <p className="text-gray-500 text-sm">
-              <strong className="text-gray-400">Result: </strong>—
-            </p>
-          ) : result >= 0 ? (
-            <p className="text-white">
-              <strong className="text-blue-400">Result: </strong>
-              <span className="text-xl font-semibold">{result.toFixed(2)} mm²</span>
-            </p>
-          ) : (
-            <p className="text-red-300">
-              <strong>Error: </strong>Invalid input
-            </p>
-          )}
+        <div className="flex items-center gap-4 mb-6">
+          <h3 className="text-2xl font-bold flex-1 text-white">Single-Phase Cross-Section</h3>
+          <ResultBox result={result} />
         </div>
+        <FormFields
+          current={current}
+          length={length}
+          resistivity={resistivity}
+          maxVoltageDrop={maxVoltageDrop}
+          onCurrentChange={setCurrent}
+          onLengthChange={setLength}
+          onResistivityChange={setResistivity}
+          onMaxVoltageDropChange={setMaxVoltageDrop}
+          onCalculate={handleCalculate}
+          cableEngine={cableEngine}
+        />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="cross-section-single-current" className="text-gray-300 font-medium">
-            Current (A)
-          </label>
-          <input
-            id="cross-section-single-current"
-            name="cross-section-single-current"
-            type="text"
-            inputMode="decimal"
-            value={current}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (isValidNumberInput(value)) {
-                setCurrent(value);
-              }
-            }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="cross-section-single-length" className="text-gray-300 font-medium">
-            Length (m)
-          </label>
-          <input
-            id="cross-section-single-length"
-            name="cross-section-single-length"
-            type="text"
-            inputMode="decimal"
-            value={length}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (isValidNumberInput(value)) {
-                setLength(value);
-              }
-            }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="cross-section-single-resistivity" className="text-gray-300 font-medium">
-            Resistivity (Ω·mm²/m)
-          </label>
-          <input
-            id="cross-section-single-resistivity"
-            name="cross-section-single-resistivity"
-            type="text"
-            inputMode="decimal"
-            value={resistivity}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (isValidNumberInput(value)) {
-                setResistivity(value);
-              }
-            }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="cross-section-single-maxVoltageDrop" className="text-gray-300 font-medium">
-            Max Voltage Drop (V)
-          </label>
-          <input
-            id="cross-section-single-maxVoltageDrop"
-            name="cross-section-single-maxVoltageDrop"
-            type="text"
-            inputMode="decimal"
-            value={maxVoltageDrop}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (isValidNumberInput(value)) {
-                setMaxVoltageDrop(value);
-              }
-            }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
-          />
-        </div>
-      </div>
-        <button
-          onClick={handleCalculate}
-          className="mt-6 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-lg h-12 cursor-pointer text-white font-semibold transition-colors shadow-lg hover:shadow-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!cableEngine}
-        >
-          Calculate Cross-Section
-        </button>
-      </div>
-      <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 shadow-lg">
-        <div className="text-xs text-gray-400 mb-2 font-semibold">Sample Data</div>
-        <table className="text-xs text-gray-300 mb-2">
-          <tbody>
-            <tr>
-              <td className="pr-2">Current:</td>
-              <td className="font-mono">{SAMPLE_DATA.current} A</td>
-            </tr>
-            <tr>
-              <td className="pr-2">Length:</td>
-              <td className="font-mono">{SAMPLE_DATA.length} m</td>
-            </tr>
-            <tr>
-              <td className="pr-2">Resistivity:</td>
-              <td className="font-mono">{SAMPLE_DATA.resistivity}</td>
-            </tr>
-            <tr>
-              <td className="pr-2">Max ΔV:</td>
-              <td className="font-mono">{SAMPLE_DATA.maxVoltageDrop} V</td>
-            </tr>
-          </tbody>
-        </table>
-        <button
-          onClick={handleApplySample}
-          className="w-full text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition-colors cursor-pointer"
-        >
-          Apply
-        </button>
-      </div>
+      <SampleDataBox onApply={handleApplySample} />
     </div>
   );
 }
