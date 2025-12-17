@@ -1,0 +1,7 @@
+# Common build output and dependency directories
+node_modules/
+dist/
+build/
+tmp/
+.env*
+*.log
