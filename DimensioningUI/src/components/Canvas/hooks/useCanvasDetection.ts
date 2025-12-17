@@ -48,6 +48,36 @@ export function useCanvasDetection(segments: CableSegment[]) {
     [segments]
   );
 
-  return { getNearestPoint, getNearestSegment };
+  const getNearestSegmentEndpoint = useCallback(
+    (point: Point, threshold: number = 15): { segmentIndex: number; point: Point; isStart: boolean } | null => {
+      let minDist = Infinity;
+      let nearest: { segmentIndex: number; point: Point; isStart: boolean } | null = null;
+
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i];
+        if (seg.points.length < 2) continue;
+
+        const startPoint = seg.points[0];
+        const endPoint = seg.points[seg.points.length - 1];
+
+        const startDist = calculateDistance(point, startPoint);
+        const endDist = calculateDistance(point, endPoint);
+
+        if (startDist < threshold && startDist < minDist) {
+          minDist = startDist;
+          nearest = { segmentIndex: i, point: startPoint, isStart: true };
+        }
+        if (endDist < threshold && endDist < minDist) {
+          minDist = endDist;
+          nearest = { segmentIndex: i, point: endPoint, isStart: false };
+        }
+      }
+
+      return nearest;
+    },
+    [segments]
+  );
+
+  return { getNearestPoint, getNearestSegment, getNearestSegmentEndpoint };
 }
 

@@ -124,6 +124,13 @@ export function SegmentPoints({
   selectedSegmentIndex,
   activeTool,
 }: SegmentPointsProps) {
+  const isSelected = selectedSegmentIndex === segIndex;
+  
+  // Only show points when segment is selected
+  if (!isSelected) {
+    return null;
+  }
+
   return (
     <>
       {segment.points.map((point, pointIndex) => (

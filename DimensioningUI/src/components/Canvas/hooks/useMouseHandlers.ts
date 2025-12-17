@@ -15,11 +15,13 @@ type UseMouseHandlersProps = {
     x: number;
     y: number;
     segmentIndex: number;
-    crossSection: number;
+    crossSection: string;
     isCopper: boolean;
   } | null;
   getNearestPoint: (point: Point, threshold?: number) => HoveredPoint | null;
   getNearestSegment: (point: Point, threshold?: number) => number | null;
+  getNearestSegmentEndpoint: (point: Point, threshold?: number) => { segmentIndex: number; point: Point; isStart: boolean } | null;
+  selectedSegmentIndex: number | null;
   deleteSegment: (segmentIndex: number) => void;
   mergeSegments: (segmentIndex: number) => void;
   setIsPanning: (value: boolean) => void;
@@ -36,7 +38,7 @@ type UseMouseHandlersProps = {
     x: number;
     y: number;
     segmentIndex: number;
-    crossSection: number;
+    crossSection: string;
     isCopper: boolean;
   } | null) => void;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
@@ -53,6 +55,8 @@ export function useMouseHandlers({
   popover,
   getNearestPoint,
   getNearestSegment,
+  getNearestSegmentEndpoint,
+  selectedSegmentIndex,
   deleteSegment,
   mergeSegments,
   setIsPanning,
@@ -103,25 +107,12 @@ export function useMouseHandlers({
         return;
       }
 
-      const nearestPoint = getNearestPoint(stagePoint, 10);
-      if (nearestPoint !== null) {
-        if (activeTool === "line") {
-          setIsDraggingPoint(true);
-          setSelectedSegmentIndex(nearestPoint.segment);
-          setHoveredPointIndex(nearestPoint);
-          setDragStart(stagePoint);
-          if (popover?.visible) {
-            setPopover(null);
-          }
-          return;
-        }
-      }
-
       if (popover?.visible) {
         setPopover(null);
       }
 
       if (activeTool === "erase") {
+        const nearestPoint = getNearestPoint(stagePoint, 10);
         if (nearestPoint !== null) {
           const segment = segments[nearestPoint.segment];
 
@@ -151,16 +142,97 @@ export function useMouseHandlers({
         return;
       }
 
-      // Check for segment double-click (only for line tool)
       if (activeTool === "line") {
-        const nearestSegmentForDoubleClick = getNearestSegment(stagePoint, 20);
-        if (nearestSegmentForDoubleClick !== null) {
+        const nearestPoint = getNearestPoint(stagePoint, 10);
+        const nearestSegment = getNearestSegment(stagePoint, 10);
+        
+        // If a segment is selected, only allow modifying it (no drawing)
+        if (selectedSegmentIndex !== null) {
+          // Check for double-click on selected segment
+          if (nearestSegment === selectedSegmentIndex) {
+            const now = Date.now();
+            const lastClick = lastClickRef.current;
+
+            if (
+              lastClick.point &&
+              lastClick.point.segment === selectedSegmentIndex &&
+              now - lastClick.time < 300
+            ) {
+              if (dragTimeoutRef.current) {
+                clearTimeout(dragTimeoutRef.current);
+                dragTimeoutRef.current = null;
+              }
+              lastClickRef.current = { time: 0, point: null };
+
+              const segment = segments[selectedSegmentIndex];
+              const midPoint = segment.points.length > 0 
+                ? segment.points[Math.floor(segment.points.length / 2)]
+                : segment.points[0];
+              
+              onSegmentDoubleClick(
+                selectedSegmentIndex,
+                midPoint.x + stagePosition.x,
+                midPoint.y + stagePosition.y
+              );
+              return;
+            }
+
+            lastClickRef.current = { time: now, point: { segment: selectedSegmentIndex, point: 0 } };
+          }
+
+          // If clicking on a point of the selected segment
+          if (nearestPoint !== null && nearestPoint.segment === selectedSegmentIndex) {
+            const segment = segments[selectedSegmentIndex];
+            const isEndpoint = nearestPoint.point === 0 || nearestPoint.point === segment.points.length - 1;
+            
+            if (isEndpoint) {
+              // Clicking on endpoint → drag that point to resize
+              setIsDraggingPoint(true);
+              setHoveredPointIndex(nearestPoint);
+            } else {
+              // Clicking on middle point → drag that point
+              setIsDraggingPoint(true);
+              setHoveredPointIndex(nearestPoint);
+            }
+            setDragStart(stagePoint);
+            return;
+          }
+
+          // If clicking on the body of the selected segment → drag the whole segment
+          if (nearestSegment === selectedSegmentIndex && nearestPoint === null) {
+            setIsDraggingSegment(true);
+            setDragStart(stagePoint);
+            return;
+          }
+
+          // If clicking outside the selected segment, deselect it
+          if (nearestSegment !== selectedSegmentIndex) {
+            setSelectedSegmentIndex(null);
+            // Continue to handle the click (select new segment or start drawing)
+          } else {
+            // Clicking on selected segment but not starting drag - just return
+            return;
+          }
+        }
+
+        // No segment selected - allow normal interactions
+        // First check if clicking near a segment endpoint to start drawing from there
+        const nearestEndpoint = getNearestSegmentEndpoint(stagePoint, 15);
+        if (nearestEndpoint !== null) {
+          const snappedPoint = snapPoint(nearestEndpoint.point);
+          setIsDrawing(true);
+          setCurrentSegment([snappedPoint]);
+          return;
+        }
+
+        // Check for segment double-click
+        if (nearestSegment !== null) {
           const now = Date.now();
           const lastClick = lastClickRef.current;
 
           if (
             lastClick.point &&
-            lastClick.point.segment === nearestSegmentForDoubleClick &&
+            lastClick.point.segment === nearestSegment &&
             now - lastClick.time < 300
           ) {
             if (dragTimeoutRef.current) {
@@ -169,33 +241,30 @@ export function useMouseHandlers({
             }
             lastClickRef.current = { time: 0, point: null };
 
-            const segment = segments[nearestSegmentForDoubleClick];
+            const segment = segments[nearestSegment];
             const midPoint = segment.points.length > 0 
               ? segment.points[Math.floor(segment.points.length / 2)]
               : segment.points[0];
             
             onSegmentDoubleClick(
-              nearestSegmentForDoubleClick,
+              nearestSegment,
               midPoint.x + stagePosition.x,
               midPoint.y + stagePosition.y
             );
             return;
           }
 
-          lastClickRef.current = { time: now, point: { segment: nearestSegmentForDoubleClick, point: 0 } };
+          lastClickRef.current = { time: now, point: { segment: nearestSegment, point: 0 } };
         }
 
-        // Check for segment dragging (if not double-clicking)
-        const nearestSegmentForDrag = getNearestSegment(stagePoint, 10);
-        if (nearestSegmentForDrag !== null) {
-          setIsDraggingSegment(true);
-          setSelectedSegmentIndex(nearestSegmentForDrag);
+        // Single click on segment → select it
+        if (nearestSegment !== null) {
+          setSelectedSegmentIndex(nearestSegment);
           setDragStart(stagePoint);
           return;
         }
-      }
 
-      if (activeTool === "line") {
+        // Otherwise, start drawing from clicked location
         const snappedPoint = snapPoint(stagePoint);
         setIsDrawing(true);
         setCurrentSegment([snappedPoint]);
@@ -210,6 +279,8 @@ export function useMouseHandlers({
       popover,
       getNearestPoint,
       getNearestSegment,
+      getNearestSegmentEndpoint,
+      selectedSegmentIndex,
       deleteSegment,
       mergeSegments,
       setIsPanning,

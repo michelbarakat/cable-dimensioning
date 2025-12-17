@@ -25,7 +25,6 @@ import {
   isConnectionPoint,
 } from "./utils";
 import { DEFAULTS } from "../../lib/defaults";
-import { RANGES } from "../../lib/ranges";
 
 const CableCanvas = ({
   cableEngine = null,
@@ -100,7 +99,7 @@ const CableCanvas = ({
     cableEngine
   );
   
-  const { getNearestPoint, getNearestSegment } = useCanvasDetection(segments);
+  const { getNearestPoint, getNearestSegment, getNearestSegmentEndpoint } = useCanvasDetection(segments);
   
   const saveToHistory = useCallback((newSegments: CableSegment[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -191,6 +190,8 @@ const CableCanvas = ({
     popover,
     getNearestPoint,
     getNearestSegment,
+    getNearestSegmentEndpoint,
+    selectedSegmentIndex,
     deleteSegment,
     mergeSegments,
     setIsPanning,
@@ -290,6 +291,7 @@ const CableCanvas = ({
     });
     const newLength = calculateSegmentLength(newPoints, scale);
     newSegments[selectedSegmentIndex] = {
+      ...seg,
       points: newPoints,
       length: newLength,
     };
@@ -390,6 +392,7 @@ const CableCanvas = ({
       return;
     }
 
+
     // Handle erase tool tooltips
     if (activeTool === "erase") {
       handleEraseToolMove(stagePoint);
@@ -421,15 +424,15 @@ const CableCanvas = ({
     if (isDraggingPoint) {
       saveToHistory(segments);
       setIsDraggingPoint(false);
-      setSelectedSegmentIndex(null);
       setHoveredPointIndex(null);
+      // Keep segment selected after dragging
       return true;
     }
 
     if (isDraggingSegment) {
       saveToHistory(segments);
       setIsDraggingSegment(false);
-      setSelectedSegmentIndex(null);
+      // Keep segment selected after dragging
       return true;
     }
 
