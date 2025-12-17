@@ -12,11 +12,9 @@ type CanvasStageProps = {
   hoveredSegmentIndex: number | null;
   hoveredPointIndex: HoveredPoint | null;
   activeTool: Tool;
-  crossSectionValues: Map<string, number>;
-  crossSection: string;
   scale: number;
   baseScale: number;
-  onCrossSectionDoubleClick: (connectionKey: string, x: number, y: number, value: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
   handleMouseDown: (e: any) => void;
   handleMouseMove: (e: any) => void;
   handleMouseUp: () => void;
@@ -34,11 +32,9 @@ export function CanvasStage({
   hoveredSegmentIndex,
   hoveredPointIndex,
   activeTool,
-  crossSectionValues,
-  crossSection,
   scale,
   baseScale,
-  onCrossSectionDoubleClick,
+  onSegmentDoubleClick,
   handleMouseDown,
   handleMouseMove,
   handleMouseUp,
@@ -68,11 +64,9 @@ export function CanvasStage({
           hoveredSegmentIndex={hoveredSegmentIndex}
           hoveredPointIndex={hoveredPointIndex}
           activeTool={activeTool}
-          crossSectionValues={crossSectionValues}
-          crossSection={crossSection}
           scale={scale}
           baseScale={baseScale}
-          onCrossSectionDoubleClick={onCrossSectionDoubleClick}
+          onSegmentDoubleClick={onSegmentDoubleClick}
         />
       </Stage>
     </div>

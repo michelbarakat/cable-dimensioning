@@ -81,6 +81,7 @@ export function useCanvasInteractions(
         points: newPoints,
         length: newLength,
         crossSection: seg.crossSection,
+        isCopper: seg.isCopper,
         connectedTo: seg.connectedTo,
       };
 
@@ -146,6 +147,7 @@ export function useCanvasInteractions(
         points: newPoints,
         length: newLength,
         crossSection: seg.crossSection,
+        isCopper: seg.isCopper,
         connectedTo: seg.connectedTo,
       };
       return { segments: newSegments, newDragStart: stagePoint };

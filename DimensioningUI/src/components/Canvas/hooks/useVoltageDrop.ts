@@ -3,6 +3,7 @@ import type { CableEngine } from "../../../lib/cable_dimensioning";
 import { parseNumber } from "../../../lib/numberInput";
 import type { CableSegment, Point } from "../types";
 import { calculateSegmentLength } from "../utils";
+import { DEFAULTS } from "../../../lib/defaults";
 
 export function useVoltageDrop(
   cableEngine: CableEngine | null,
@@ -10,9 +11,7 @@ export function useVoltageDrop(
   currentSegment: Point[],
   current: string,
   resistivity: string,
-  crossSection: string,
-  scale: string,
-  crossSectionValues: Map<string, number>
+  scale: string
 ) {
   const [result, setResult] = useState<number | null>(null);
 
@@ -23,13 +22,11 @@ export function useVoltageDrop(
 
     const currentValue = parseNumber(current);
     const resistivityValue = parseNumber(resistivity);
-    const crossSectionValue = parseNumber(crossSection);
     const scaleValue = parseNumber(scale);
 
     if (
       currentValue <= 0 ||
       resistivityValue <= 0 ||
-      crossSectionValue <= 0 ||
       scaleValue <= 0
     ) {
       return null;
@@ -43,7 +40,12 @@ export function useVoltageDrop(
         scaleValue
       );
       if (currentLength > 0) {
-        allSegments.push({ points: currentSegment, length: currentLength });
+        allSegments.push({ 
+          points: currentSegment, 
+          length: currentLength,
+          crossSection: DEFAULTS.CROSS_SECTION,
+          isCopper: DEFAULTS.IS_COPPER,
+        });
       }
     }
 
@@ -54,21 +56,9 @@ export function useVoltageDrop(
     // Calculate total voltage drop using chain calculation
     const lengths = allSegments.map((seg) => seg.length);
 
-    // Get cross-section values for each segment
-    // For connected segments, use the cross-section value at the connection point
-    const sections = allSegments.map((seg, index) => {
-      // Check if this segment is connected to another segment
-      if (seg.connectedTo !== undefined) {
-        const connectedIndex = seg.connectedTo;
-        // Create connection key (sorted to ensure consistency)
-        const connectionKey = `${Math.min(index, connectedIndex)}-${Math.max(index, connectedIndex)}`;
-
-        if (crossSectionValues.has(connectionKey)) {
-          return crossSectionValues.get(connectionKey)!;
-        }
-      }
-      // Fall back to segment-specific cross-section or default
-      return seg.crossSection ?? crossSectionValue;
+    // Get cross-section values for each segment (use segment property or default)
+    const sections = allSegments.map((seg) => {
+      return seg.crossSection ?? DEFAULTS.CROSS_SECTION;
     });
 
     const lengthsArray = new Float64Array(lengths);
@@ -93,9 +83,7 @@ export function useVoltageDrop(
     currentSegment,
     current,
     resistivity,
-    crossSection,
     scale,
-    crossSectionValues,
   ]);
 
   useEffect(() => {

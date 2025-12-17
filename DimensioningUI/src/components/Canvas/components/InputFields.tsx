@@ -1,4 +1,5 @@
-import { isValidNumberInput } from "../../../lib/numberInput";
+import { isValidNumberInput, parseNumber } from "../../../lib/numberInput";
+import { RANGES } from "../../../lib/ranges";
 
 type InputFieldsProps = {
   current: string;
@@ -20,7 +21,7 @@ export function InputFields({
           htmlFor="canvas-current"
           className="text-gray-300 font-medium"
         >
-          Current (A)
+          Current (A) [{RANGES.CURRENT.MIN} - {RANGES.CURRENT.MAX}]
         </label>
         <input
           id="canvas-current"
@@ -31,7 +32,12 @@ export function InputFields({
           onChange={(e) => {
             const value = e.target.value;
             if (isValidNumberInput(value)) {
-              setCurrent(value);
+              const numValue = parseNumber(value);
+              // Only update if within range or empty/intermediate state
+              if (value === "" || value === "." || value === "," || value === "-" || 
+                  (numValue >= RANGES.CURRENT.MIN && numValue <= RANGES.CURRENT.MAX)) {
+                setCurrent(value);
+              }
             }
           }}
           className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
@@ -42,7 +48,7 @@ export function InputFields({
           htmlFor="canvas-resistivity"
           className="text-gray-300 font-medium"
         >
-          Resistivity (Ω·mm²/m)
+          Resistivity (Ω·mm²/m) [{RANGES.RESISTIVITY.MIN} - {RANGES.RESISTIVITY.MAX}]
         </label>
         <input
           id="canvas-resistivity"
@@ -53,7 +59,12 @@ export function InputFields({
           onChange={(e) => {
             const value = e.target.value;
             if (isValidNumberInput(value)) {
-              setResistivity(value);
+              const numValue = parseNumber(value);
+              // Only update if within range or empty/intermediate state
+              if (value === "" || value === "." || value === "," || value === "-" || 
+                  (numValue >= RANGES.RESISTIVITY.MIN && numValue <= RANGES.RESISTIVITY.MAX)) {
+                setResistivity(value);
+              }
             }
           }}
           className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"

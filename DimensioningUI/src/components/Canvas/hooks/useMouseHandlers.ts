@@ -2,8 +2,6 @@ import { useCallback, useRef } from "react";
 import type { CableSegment, Point, Tool, HoveredPoint } from "../types";
 import { calculateSegmentLength, snapToGridPoint, isConnectionPoint } from "../utils";
 
-const DEFAULT_CROSS_SECTION = 2.5;
-
 type UseMouseHandlersProps = {
   cableEngine: unknown;
   segments: CableSegment[];
@@ -12,17 +10,16 @@ type UseMouseHandlersProps = {
   stagePosition: { x: number; y: number };
   scale: number;
   snapToGrid: boolean;
-  crossSectionValues: Map<string, number>;
   popover: {
     visible: boolean;
     x: number;
     y: number;
-    connectionKey: string;
-    value: number;
+    segmentIndex: number;
+    crossSection: number;
+    isCopper: boolean;
   } | null;
   getNearestPoint: (point: Point, threshold?: number) => HoveredPoint | null;
   getNearestSegment: (point: Point, threshold?: number) => number | null;
-  splitSegmentAtPoint: (segmentIndex: number, point: Point) => void;
   deleteSegment: (segmentIndex: number) => void;
   mergeSegments: (segmentIndex: number) => void;
   setIsPanning: (value: boolean) => void;
@@ -38,9 +35,11 @@ type UseMouseHandlersProps = {
     visible: boolean;
     x: number;
     y: number;
-    connectionKey: string;
-    value: number;
+    segmentIndex: number;
+    crossSection: number;
+    isCopper: boolean;
   } | null) => void;
+  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 };
 
 export function useMouseHandlers({
@@ -51,11 +50,9 @@ export function useMouseHandlers({
   stagePosition,
   scale,
   snapToGrid,
-  crossSectionValues,
   popover,
   getNearestPoint,
   getNearestSegment,
-  splitSegmentAtPoint,
   deleteSegment,
   mergeSegments,
   setIsPanning,
@@ -68,6 +65,7 @@ export function useMouseHandlers({
   setIsDrawing,
   setCurrentSegment,
   setPopover,
+  onSegmentDoubleClick,
 }: UseMouseHandlersProps) {
   const lastClickRef = useRef<{ time: number; point: HoveredPoint | null }>({
     time: 0,
@@ -107,73 +105,6 @@ export function useMouseHandlers({
 
       const nearestPoint = getNearestPoint(stagePoint, 10);
       if (nearestPoint !== null) {
-        const segment = segments[nearestPoint.segment];
-        const pointIndex = nearestPoint.point;
-
-        let isCrossSectionPoint = false;
-        let connectionKey: string | null = null;
-        if (segment.connectedTo !== undefined) {
-          const connectedIndex = segment.connectedTo;
-          const connectedSegment = segments[connectedIndex];
-          isCrossSectionPoint = isConnectionPoint(
-            segment,
-            pointIndex,
-            connectedSegment
-          );
-          if (isCrossSectionPoint) {
-            connectionKey = `${Math.min(nearestPoint.segment, connectedIndex)}-${Math.max(nearestPoint.segment, connectedIndex)}`;
-          }
-        }
-
-        if (isCrossSectionPoint && connectionKey && activeTool !== "erase") {
-          const now = Date.now();
-          const lastClick = lastClickRef.current;
-
-          if (
-            lastClick.point &&
-            lastClick.point.segment === nearestPoint.segment &&
-            lastClick.point.point === nearestPoint.point &&
-            now - lastClick.time < 300
-          ) {
-            if (dragTimeoutRef.current) {
-              clearTimeout(dragTimeoutRef.current);
-              dragTimeoutRef.current = null;
-            }
-            lastClickRef.current = { time: 0, point: null };
-
-            const crossSectionValue =
-              crossSectionValues.get(connectionKey) ?? DEFAULT_CROSS_SECTION;
-            const canvasPoint = segment.points[pointIndex];
-
-            setPopover({
-              visible: true,
-              x: canvasPoint.x + stagePosition.x,
-              y: canvasPoint.y + stagePosition.y - 30,
-              connectionKey,
-              value: crossSectionValue,
-            });
-            return;
-          }
-
-          lastClickRef.current = { time: now, point: nearestPoint };
-
-          if (dragTimeoutRef.current) {
-            clearTimeout(dragTimeoutRef.current);
-          }
-
-          if (activeTool === "line") {
-            dragTimeoutRef.current = setTimeout(() => {
-              setIsDraggingPoint(true);
-              setSelectedSegmentIndex(nearestPoint.segment);
-              setHoveredPointIndex(nearestPoint);
-              setDragStart(stagePoint);
-              dragTimeoutRef.current = null;
-            }, 300);
-          }
-
-          return;
-        }
-
         if (activeTool === "line") {
           setIsDraggingPoint(true);
           setSelectedSegmentIndex(nearestPoint.segment);
@@ -191,7 +122,6 @@ export function useMouseHandlers({
       }
 
       if (activeTool === "erase") {
-        const nearestPoint = getNearestPoint(stagePoint, 10);
         if (nearestPoint !== null) {
           const segment = segments[nearestPoint.segment];
 
@@ -213,28 +143,56 @@ export function useMouseHandlers({
           }
         }
 
-        const nearestSegment = getNearestSegment(stagePoint, 10);
-        if (nearestSegment !== null) {
-          deleteSegment(nearestSegment);
+        const nearestSegmentForErase = getNearestSegment(stagePoint, 10);
+        if (nearestSegmentForErase !== null) {
+          deleteSegment(nearestSegmentForErase);
           return;
         }
         return;
       }
 
-      if (activeTool === "crossSection") {
-        const nearestSegment = getNearestSegment(stagePoint, 10);
-        if (nearestSegment !== null) {
-          splitSegmentAtPoint(nearestSegment, stagePoint);
+      // Check for segment double-click (only for line tool)
+      if (activeTool === "line") {
+        const nearestSegmentForDoubleClick = getNearestSegment(stagePoint, 20);
+        if (nearestSegmentForDoubleClick !== null) {
+          const now = Date.now();
+          const lastClick = lastClickRef.current;
+
+          if (
+            lastClick.point &&
+            lastClick.point.segment === nearestSegmentForDoubleClick &&
+            now - lastClick.time < 300
+          ) {
+            if (dragTimeoutRef.current) {
+              clearTimeout(dragTimeoutRef.current);
+              dragTimeoutRef.current = null;
+            }
+            lastClickRef.current = { time: 0, point: null };
+
+            const segment = segments[nearestSegmentForDoubleClick];
+            const midPoint = segment.points.length > 0 
+              ? segment.points[Math.floor(segment.points.length / 2)]
+              : segment.points[0];
+            
+            onSegmentDoubleClick(
+              nearestSegmentForDoubleClick,
+              midPoint.x + stagePosition.x,
+              midPoint.y + stagePosition.y
+            );
+            return;
+          }
+
+          lastClickRef.current = { time: now, point: { segment: nearestSegmentForDoubleClick, point: 0 } };
+        }
+
+        // Check for segment dragging (if not double-clicking)
+        const nearestSegmentForDrag = getNearestSegment(stagePoint, 10);
+        if (nearestSegmentForDrag !== null) {
+          setIsDraggingSegment(true);
+          setSelectedSegmentIndex(nearestSegmentForDrag);
+          setDragStart(stagePoint);
           return;
         }
-      }
-
-      const nearestSegment = getNearestSegment(stagePoint, 10);
-      if (nearestSegment !== null && activeTool === "line") {
-        setIsDraggingSegment(true);
-        setSelectedSegmentIndex(nearestSegment);
-        setDragStart(stagePoint);
-        return;
       }
 
       if (activeTool === "line") {
@@ -249,11 +207,9 @@ export function useMouseHandlers({
       activeTool,
       isSpacePressed,
       stagePosition,
-      crossSectionValues,
       popover,
       getNearestPoint,
       getNearestSegment,
-      splitSegmentAtPoint,
       deleteSegment,
       mergeSegments,
       setIsPanning,
@@ -266,6 +222,7 @@ export function useMouseHandlers({
       setIsDrawing,
       setCurrentSegment,
       setPopover,
+      onSegmentDoubleClick,
       snapPoint,
     ]
   );

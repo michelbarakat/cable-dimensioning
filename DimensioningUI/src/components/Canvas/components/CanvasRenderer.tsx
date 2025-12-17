@@ -1,7 +1,8 @@
 import { Layer, Line, Circle } from "react-konva";
 import type { CableSegment, Point, Tool, HoveredPoint } from "../types";
 import { SegmentPoints } from "./PointRenderer";
-import { CrossSectionLabels } from "./CrossSectionLabels";
+import { SegmentLabels } from "./SegmentLabels";
+import { DEFAULTS } from "../../../lib/defaults";
 
 type CanvasRendererProps = {
   gridLines: Array<{ points: number[]; key: string }>;
@@ -11,11 +12,9 @@ type CanvasRendererProps = {
   hoveredSegmentIndex: number | null;
   hoveredPointIndex: HoveredPoint | null;
   activeTool: Tool;
-  crossSectionValues: Map<string, number>;
-  crossSection: string;
   scale: number;
   baseScale: number;
-  onCrossSectionDoubleClick: (connectionKey: string, x: number, y: number, value: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 };
 
 function GridLines({ gridLines }: { gridLines: Array<{ points: number[]; key: string }> }) {
@@ -41,28 +40,58 @@ function SegmentLine({
   scaleFactor,
   selectedSegmentIndex,
   hoveredSegmentIndex,
+  onSegmentDoubleClick,
 }: {
   segment: CableSegment;
   segIndex: number;
   scaleFactor: number;
   selectedSegmentIndex: number | null;
   hoveredSegmentIndex: number | null;
+  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 }) {
-  const stroke =
-    selectedSegmentIndex === segIndex
-      ? "#10b981"
-      : hoveredSegmentIndex === segIndex
-        ? "#60a5fa"
-        : "#3b82f6";
+  const isCopper = segment.isCopper ?? DEFAULTS.IS_COPPER;
+  const crossSection = segment.crossSection ?? DEFAULTS.CROSS_SECTION;
+  
+  // Color based on material: copper = orange/brown, aluminum = silver/gray
+  const baseColor = isCopper ? "#f97316" : "#94a3b8"; // Copper: orange, Aluminum: gray
+  
+  // Thickness based on cross-section (default = 3px base, scales up)
+  const baseThickness = 3;
+  const thicknessMultiplier = Math.max(1, crossSection / DEFAULTS.CROSS_SECTION);
+  const strokeWidth = baseThickness * thicknessMultiplier;
+  
+  // Use base color for all states, adjust opacity for hover/selection
+  const stroke = baseColor;
+  const opacity = selectedSegmentIndex === segIndex
+    ? 1.0
+    : hoveredSegmentIndex === segIndex
+      ? 1.0
+      : 0.8;
+
+  const handleDblClick = (e: any) => {
+    e.cancelBubble = true;
+    const stage = e.target.getStage();
+    if (stage) {
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        const midPoint = segment.points.length > 0 
+          ? segment.points[Math.floor(segment.points.length / 2)]
+          : segment.points[0];
+        onSegmentDoubleClick(segIndex, pos.x, pos.y);
+      }
+    }
+  };
 
   return (
     <Line
       key={`segment-${segIndex}`}
       points={segment.points.flatMap((p) => [p.x * scaleFactor, p.y * scaleFactor])}
       stroke={stroke}
-      strokeWidth={selectedSegmentIndex === segIndex ? 4 : 3}
+      strokeWidth={selectedSegmentIndex === segIndex ? strokeWidth + 1 : strokeWidth}
+      opacity={opacity}
       lineCap="round"
       lineJoin="round"
+      onDblClick={handleDblClick}
     />
   );
 }
@@ -76,10 +105,9 @@ export function CanvasRenderer({
   hoveredSegmentIndex,
   hoveredPointIndex,
   activeTool,
-  crossSectionValues,
   scale,
   baseScale,
-  onCrossSectionDoubleClick,
+  onSegmentDoubleClick,
 }: CanvasRendererProps) {
   // Calculate scale factor for rendering
   const scaleFactor = baseScale > 0 ? scale / baseScale : 1;
@@ -95,6 +123,7 @@ export function CanvasRenderer({
           scaleFactor={scaleFactor}
           selectedSegmentIndex={selectedSegmentIndex}
           hoveredSegmentIndex={hoveredSegmentIndex}
+          onSegmentDoubleClick={onSegmentDoubleClick}
         />
       ))}
       {currentPoints.length > 1 && (
@@ -117,8 +146,6 @@ export function CanvasRenderer({
           hoveredPointIndex={hoveredPointIndex}
           selectedSegmentIndex={selectedSegmentIndex}
           activeTool={activeTool}
-          crossSectionValues={crossSectionValues}
-          onCrossSectionDoubleClick={onCrossSectionDoubleClick}
         />
       ))}
       {currentPoints.map((point, index) => (
@@ -130,10 +157,9 @@ export function CanvasRenderer({
           fill="#60a5fa"
         />
       ))}
-      <CrossSectionLabels
+      <SegmentLabels
         segments={segments}
         scaleFactor={scaleFactor}
-        crossSectionValues={crossSectionValues}
       />
     </Layer>
   );

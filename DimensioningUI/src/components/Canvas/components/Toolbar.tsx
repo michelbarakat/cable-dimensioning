@@ -22,18 +22,6 @@ export function Toolbar({ activeTool, setActiveTool }: ToolbarProps) {
           <span>Segment</span>
         </button>
         <button
-          onClick={() => setActiveTool("crossSection")}
-          className={`px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm flex items-center gap-2 ${
-            activeTool === "crossSection"
-              ? "bg-purple-600 hover:bg-purple-500 text-white"
-              : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-          }`}
-          title="Cross Section Tool - Split segments"
-        >
-          <span className="text-lg">✂️</span>
-          <span>Cross Section</span>
-        </button>
-        <button
           onClick={() => setActiveTool("erase")}
           className={`px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm flex items-center gap-2 ${
             activeTool === "erase"

@@ -12,70 +12,10 @@ export function useSegmentOperations(
   segments: CableSegment[],
   scale: string,
   snapToGrid: boolean,
-  crossSection: string,
-  crossSectionValues: Map<string, number>,
   setSegments: (segments: CableSegment[]) => void,
-  setCrossSectionValues: (values: Map<string, number>) => void,
   saveToHistory: (segments: CableSegment[]) => void
 ) {
   const scaleValue = parseNumber(scale);
-
-  const splitSegmentAtPoint = useCallback(
-    (segmentIndex: number, point: Point): void => {
-      const segment = segments[segmentIndex];
-      if (segment.points.length < 2) return;
-
-      const startPoint = segment.points[0];
-      const endPoint = segment.points[segment.points.length - 1];
-      const snappedPoint = snapToGridPoint(point, scaleValue, snapToGrid);
-
-      // Check if a point already exists at this location (prevent duplicates)
-      if (pointExistsAtLocation(snappedPoint, segments, 5)) {
-        return; // Don't create duplicate cross-section
-      }
-
-      // Create connection key for the cross-section
-      const connectionKey = `${segmentIndex}-${segmentIndex + 1}`;
-
-      // Create two new segments
-      const firstSegment: CableSegment = {
-        points: [startPoint, snappedPoint],
-        length: calculateSegmentLength([startPoint, snappedPoint], scaleValue),
-        crossSection: segment.crossSection,
-        connectedTo: segmentIndex + 1, // Connected to the second segment
-      };
-
-      const secondSegment: CableSegment = {
-        points: [snappedPoint, endPoint],
-        length: calculateSegmentLength([snappedPoint, endPoint], scaleValue),
-        crossSection: segment.crossSection,
-        connectedTo: segmentIndex, // Connected to the first segment
-      };
-
-      // Initialize cross-section value with default if not set
-      const newCrossSectionValues = new Map(crossSectionValues);
-      if (!newCrossSectionValues.has(connectionKey)) {
-        newCrossSectionValues.set(connectionKey, parseNumber(crossSection));
-        setCrossSectionValues(newCrossSectionValues);
-      }
-
-      // Replace the original segment with the two new segments
-      const newSegments = [...segments];
-      newSegments.splice(segmentIndex, 1, firstSegment, secondSegment);
-      setSegments(newSegments);
-      saveToHistory(newSegments);
-    },
-    [
-      segments,
-      scaleValue,
-      snapToGrid,
-      crossSection,
-      crossSectionValues,
-      setSegments,
-      setCrossSectionValues,
-      saveToHistory,
-    ]
-  );
 
   const mergeSegments = useCallback(
     (segmentIndex: number): void => {
@@ -123,14 +63,9 @@ export function useSegmentOperations(
         points: mergedPoints,
         length: calculateSegmentLength(mergedPoints, scaleValue),
         crossSection: segment.crossSection ?? connectedSegment.crossSection,
+        isCopper: segment.isCopper ?? connectedSegment.isCopper ?? true,
         // No connectedTo - it's now a single segment
       };
-
-      // Remove cross-section value for this connection
-      const connectionKey = `${Math.min(segmentIndex, connectedIndex)}-${Math.max(segmentIndex, connectedIndex)}`;
-      const newCrossSectionValues = new Map(crossSectionValues);
-      newCrossSectionValues.delete(connectionKey);
-      setCrossSectionValues(newCrossSectionValues);
 
       // Replace both segments with the merged one
       const newSegments = [...segments];
@@ -149,9 +84,7 @@ export function useSegmentOperations(
     [
       segments,
       scaleValue,
-      crossSectionValues,
       setSegments,
-      setCrossSectionValues,
       saveToHistory,
     ]
   );
@@ -166,7 +99,6 @@ export function useSegmentOperations(
   );
 
   return {
-    splitSegmentAtPoint,
     mergeSegments,
     deleteSegment,
   };

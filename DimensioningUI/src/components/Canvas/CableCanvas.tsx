@@ -9,7 +9,7 @@ import { CanvasControls } from "./components/CanvasControls";
 import { Toolbar } from "./components/Toolbar";
 import { CanvasStage } from "./components/CanvasStage";
 import { Tooltip } from "./components/Tooltip";
-import { CrossSectionPopover } from "./components/CrossSectionPopover";
+import { SegmentPropertiesPopover } from "./components/SegmentPropertiesPopover";
 import { ToolInstructions } from "./components/ToolInstructions";
 import { CanvasStats } from "./components/CanvasStats";
 import { LoadingWarning } from "./components/LoadingWarning";
@@ -24,21 +24,18 @@ import {
   snapToGridPoint,
   isConnectionPoint,
 } from "./utils";
-
-// Default cross-section value (mm²)
-const DEFAULT_CROSS_SECTION = 2.5;
-// Default scale value (pixels per meter)
-const DEFAULT_SCALE = 300;
+import { DEFAULTS } from "../../lib/defaults";
+import { RANGES } from "../../lib/ranges";
 
 const CableCanvas = ({
   cableEngine = null,
 }: {
   cableEngine?: CableEngine | null;
 }) => {
-  const [current, setCurrent] = useState<string>("16");
-  const [resistivity, setResistivity] = useState<string>("0.0175");
-  const [scale, setScale] = useState<number>(DEFAULT_SCALE);
-  const [baseScale, setBaseScale] = useState<number>(DEFAULT_SCALE); // Scale at which segments were created
+  const [current, setCurrent] = useState<string>(DEFAULTS.CURRENT);
+  const [resistivity, setResistivity] = useState<string>(DEFAULTS.RESISTIVITY);
+  const [scale, setScale] = useState<number>(DEFAULTS.SCALE);
+  const [baseScale, setBaseScale] = useState<number>(DEFAULTS.SCALE); // Scale at which segments were created
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentSegment, setCurrentSegment] = useState<Point[]>([]);
   const [segments, setSegments] = useState<CableSegment[]>([]);
@@ -67,14 +64,14 @@ const CableCanvas = ({
     x: number;
     y: number;
   } | null>(null);
-  const [hoveredDeletable, setHoveredDeletable] = useState<"segment" | "crossSection" | null>(null);
-  const [crossSectionValues, setCrossSectionValues] = useState<Map<string, number>>(new Map());
+  const [hoveredDeletable, setHoveredDeletable] = useState<"segment" | null>(null);
   const [popover, setPopover] = useState<{
     visible: boolean;
     x: number;
     y: number;
-    connectionKey: string;
-    value: number;
+    segmentIndex: number;
+    crossSection: string;
+    isCopper: boolean;
   } | null>(null);
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,9 +83,7 @@ const CableCanvas = ({
     currentSegment,
     current,
     resistivity,
-    DEFAULT_CROSS_SECTION.toString(),
-    scale.toString(),
-    crossSectionValues
+    scale.toString()
   );
   
   const gridLines = useGrid(showGrid, scale.toString(), stageSize, stagePosition);
@@ -114,17 +109,37 @@ const CableCanvas = ({
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
-  const { splitSegmentAtPoint, mergeSegments, deleteSegment } = useSegmentOperations(
+  const { mergeSegments, deleteSegment } = useSegmentOperations(
     segments,
     scale.toString(),
     snapToGrid,
-    DEFAULT_CROSS_SECTION.toString(),
-    crossSectionValues,
     setSegments,
-    setCrossSectionValues,
     saveToHistory
   );
 
+  const handleSegmentDoubleClick = (segmentIndex: number, x: number, y: number) => {
+    if (!cableEngine || activeTool === "erase") return;
+    const segment = segments[segmentIndex];
+    setPopover({
+      visible: true,
+      x,
+      y,
+      segmentIndex,
+      crossSection: (segment.crossSection ?? DEFAULTS.CROSS_SECTION).toString(),
+      isCopper: segment.isCopper ?? DEFAULTS.IS_COPPER,
+    });
+  };
+
+  const handleUpdateSegment = (segmentIndex: number, crossSection: number, isCopper: boolean) => {
+    const newSegments = [...segments];
+    newSegments[segmentIndex] = {
+      ...newSegments[segmentIndex],
+      crossSection,
+      isCopper,
+    };
+    setSegments(newSegments);
+    saveToHistory(newSegments);
+  };
 
   // Update stage size based on container width
   useEffect(() => {
@@ -173,11 +188,9 @@ const CableCanvas = ({
     stagePosition,
     scale,
     snapToGrid,
-    crossSectionValues,
     popover,
     getNearestPoint,
     getNearestSegment,
-    splitSegmentAtPoint,
     deleteSegment,
     mergeSegments,
     setIsPanning,
@@ -190,6 +203,7 @@ const CableCanvas = ({
     setIsDrawing,
     setCurrentSegment,
     setPopover,
+    onSegmentDoubleClick: handleSegmentDoubleClick,
   });
 
   // Cleanup timeout on unmount
@@ -318,11 +332,11 @@ const CableCanvas = ({
         if (isConnPoint) {
           const canvasPoint = segment.points[pointIndex];
           setTooltip({
-            text: "Delete cross section",
+            text: "Click to merge segments",
             x: canvasPoint.x + stagePosition.x,
             y: canvasPoint.y + stagePosition.y - 20,
           });
-          setHoveredDeletable("crossSection");
+          setHoveredDeletable("segment");
           return;
         }
       }
@@ -397,17 +411,6 @@ const CableCanvas = ({
     });
   };
 
-  const handleCrossSectionDoubleClick = (connectionKey: string, x: number, y: number, value: number) => {
-    if (!cableEngine || activeTool === "erase") return;
-    setPopover({
-      visible: true,
-      x,
-      y,
-      connectionKey,
-      value,
-    });
-  };
-
   const handleDragEnd = () => {
     // Clear drag timeout if mouse is released before timeout
     if (dragTimeoutRef.current) {
@@ -454,7 +457,12 @@ const CableCanvas = ({
 
     const newSegments = [
       ...segments,
-      { points: [...currentSegment], length },
+      { 
+        points: [...currentSegment], 
+        length,
+        crossSection: DEFAULTS.CROSS_SECTION,
+        isCopper: DEFAULTS.IS_COPPER,
+      },
     ];
     setSegments(newSegments);
     saveToHistory(newSegments);
@@ -497,7 +505,6 @@ const CableCanvas = ({
     setCurrentSegment([]);
     setHistory([[]]);
     setHistoryIndex(0);
-    setCrossSectionValues(new Map());
   };
 
   // Helper function to zoom towards a focal point
@@ -580,19 +587,6 @@ const CableCanvas = ({
     return completedLength + currentLength;
   })();
 
-  // Calculate total cross-sections (unique connections between segments)
-  const totalCrossSections = (() => {
-    const connections = new Set<string>();
-    segments.forEach((segment, index) => {
-      if (segment.connectedTo !== undefined) {
-        const connectedIndex = segment.connectedTo;
-        // Create a unique key for each connection pair
-        const connectionKey = `${Math.min(index, connectedIndex)}-${Math.max(index, connectedIndex)}`;
-        connections.add(connectionKey);
-      }
-    });
-    return connections.size;
-  })();
 
 
   return (
@@ -645,11 +639,9 @@ const CableCanvas = ({
                 hoveredSegmentIndex={hoveredSegmentIndex}
                 hoveredPointIndex={hoveredPointIndex}
                 activeTool={activeTool}
-                crossSectionValues={crossSectionValues}
-                crossSection={DEFAULT_CROSS_SECTION.toString()}
                 scale={scale}
                 baseScale={baseScale}
-                onCrossSectionDoubleClick={handleCrossSectionDoubleClick}
+                onSegmentDoubleClick={handleSegmentDoubleClick}
                 handleMouseDown={handleMouseDown}
                 handleMouseMove={handleMouseMove}
                 handleMouseUp={handleMouseUp}
@@ -657,18 +649,16 @@ const CableCanvas = ({
                 cursor={cursor}
               />
               <Tooltip tooltip={tooltip} />
-              <CrossSectionPopover
+              <SegmentPropertiesPopover
                 popover={popover}
-                crossSectionValues={crossSectionValues}
                 setPopover={setPopover}
-                setCrossSectionValues={setCrossSectionValues}
+                onUpdateSegment={handleUpdateSegment}
               />
             </div>
             <ToolInstructions activeTool={activeTool} />
             <CanvasStats
               totalSegments={totalSegments}
               totalLength={totalLength}
-              totalCrossSections={totalCrossSections}
             />
           </div>
         </div>
