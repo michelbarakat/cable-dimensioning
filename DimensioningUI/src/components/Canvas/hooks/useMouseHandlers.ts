@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import type { CableSegment, Point, Tool, HoveredPoint } from "../types";
-import { calculateSegmentLength, snapToGridPoint, isConnectionPoint } from "../utils";
+import { snapToGridPoint, isConnectionPoint } from "../utils";
 
 type UseMouseHandlersProps = {
   cableEngine: unknown;
@@ -45,7 +45,6 @@ type UseMouseHandlersProps = {
 };
 
 export function useMouseHandlers({
-  cableEngine,
   segments,
   activeTool,
   isSpacePressed,
@@ -84,218 +83,221 @@ export function useMouseHandlers({
     [scale, snapToGrid]
   );
 
+  const handleDoubleClick = useCallback(
+    (segmentIndex: number) => {
+      const segment = segments[segmentIndex];
+      const pointCount = segment.points.length;
+      const midIndex = Math.floor(pointCount / 2);
+      const midPoint = segment.points[midIndex] || segment.points[0];
+      
+      onSegmentDoubleClick(
+        segmentIndex,
+        midPoint.x + stagePosition.x,
+        midPoint.y + stagePosition.y
+      );
+    },
+    [segments, stagePosition, onSegmentDoubleClick]
+  );
+
+  const clearDragTimeout = useCallback(() => {
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+      dragTimeoutRef.current = null;
+    }
+  }, []);
+
+  const checkAndHandleDoubleClick = useCallback(
+    (segmentIndex: number | null): boolean => {
+      if (segmentIndex === null) return false;
+
+      const now = Date.now();
+      const lastClick = lastClickRef.current;
+      const lastPoint = lastClick.point;
+      const isDoubleClick = lastPoint !== null && lastPoint.segment === segmentIndex && now - lastClick.time < 300;
+
+      if (isDoubleClick) {
+        clearDragTimeout();
+        lastClickRef.current = { time: 0, point: null };
+        handleDoubleClick(segmentIndex);
+        return true;
+      }
+
+      lastClickRef.current = { time: now, point: { segment: segmentIndex, point: 0 } };
+      return false;
+    },
+    [handleDoubleClick, clearDragTimeout]
+  );
+
+  const handleConnectionPointMerge = useCallback(
+    (nearestPoint: HoveredPoint): boolean => {
+      const segment = segments[nearestPoint.segment];
+      const connectedIndex = segment.connectedTo;
+      if (connectedIndex === undefined) return false;
+      
+      const connectedSegment = segments[connectedIndex];
+      const isConnPoint = isConnectionPoint(segment, nearestPoint.point, connectedSegment);
+      if (isConnPoint) {
+        mergeSegments(nearestPoint.segment);
+      }
+      return isConnPoint;
+    },
+    [segments, mergeSegments]
+  );
+
+  const handleEraseTool = useCallback(
+    (stagePoint: Point): boolean => {
+      const nearestPoint = getNearestPoint(stagePoint, 10);
+      if (nearestPoint && handleConnectionPointMerge(nearestPoint)) {
+        return true;
+      }
+
+      const nearestSegmentForErase = getNearestSegment(stagePoint, 10);
+      if (nearestSegmentForErase !== null) {
+        deleteSegment(nearestSegmentForErase);
+        return true;
+      }
+
+      return false;
+    },
+    [getNearestPoint, getNearestSegment, handleConnectionPointMerge, deleteSegment]
+  );
+
+  const handlePointDrag = useCallback(
+    (nearestPoint: HoveredPoint, stagePoint: Point) => {
+      setIsDraggingPoint(true);
+      setHoveredPointIndex(nearestPoint);
+      setDragStart(stagePoint);
+    },
+    [setIsDraggingPoint, setHoveredPointIndex, setDragStart]
+  );
+
+  const handleSegmentBodyDrag = useCallback(
+    (stagePoint: Point) => {
+      setIsDraggingSegment(true);
+      setDragStart(stagePoint);
+    },
+    [setIsDraggingSegment, setDragStart]
+  );
+
+  const handleSelectedSegmentInteraction = useCallback(
+    (stagePoint: Point, nearestPoint: HoveredPoint | null, nearestSegment: number | null): boolean => {
+      if (selectedSegmentIndex === null) return false;
+
+      const isOnSelectedSegment = nearestSegment === selectedSegmentIndex;
+      const isOnSelectedPoint = nearestPoint !== null && nearestPoint.segment === selectedSegmentIndex;
+
+      if (isOnSelectedSegment) {
+        if (checkAndHandleDoubleClick(selectedSegmentIndex)) return true;
+        if (nearestPoint === null) {
+          handleSegmentBodyDrag(stagePoint);
+          return true;
+        }
+      }
+
+      if (isOnSelectedPoint) {
+        handlePointDrag(nearestPoint, stagePoint);
+        return true;
+      }
+
+      if (!isOnSelectedSegment) {
+        setSelectedSegmentIndex(null);
+        return false;
+      }
+
+      return true;
+    },
+    [selectedSegmentIndex, checkAndHandleDoubleClick, handlePointDrag, handleSegmentBodyDrag, setSelectedSegmentIndex]
+  );
+
+  const startDrawing = useCallback(
+    (point: Point) => {
+      const snappedPoint = snapPoint(point);
+      setIsDrawing(true);
+      setCurrentSegment([snappedPoint]);
+    },
+    [snapPoint, setIsDrawing, setCurrentSegment]
+  );
+
+  const handleUnselectedSegmentInteraction = useCallback(
+    (stagePoint: Point, nearestSegment: number | null): boolean => {
+      const nearestEndpoint = getNearestSegmentEndpoint(stagePoint, 15);
+      if (nearestEndpoint !== null) {
+        startDrawing(nearestEndpoint.point);
+        return true;
+      }
+
+      if (nearestSegment === null) return false;
+
+      if (checkAndHandleDoubleClick(nearestSegment)) {
+        return true;
+      }
+
+      setSelectedSegmentIndex(nearestSegment);
+      setDragStart(stagePoint);
+      return true;
+    },
+    [getNearestSegmentEndpoint, startDrawing, checkAndHandleDoubleClick, setSelectedSegmentIndex, setDragStart]
+  );
+
+  const handlePanning = useCallback(
+    (point: { x: number; y: number }) => {
+      setIsPanning(true);
+      setPanStart({
+        x: point.x - stagePosition.x,
+        y: point.y - stagePosition.y,
+      });
+      if (popover?.visible) setPopover(null);
+    },
+    [stagePosition, popover, setIsPanning, setPanStart, setPopover]
+  );
+
+  const handleLineTool = useCallback(
+    (stagePoint: Point) => {
+      const nearestPoint = getNearestPoint(stagePoint, 10);
+      const nearestSegment = getNearestSegment(stagePoint, 10);
+      
+      if (handleSelectedSegmentInteraction(stagePoint, nearestPoint, nearestSegment)) {
+        return;
+      }
+
+      if (handleUnselectedSegmentInteraction(stagePoint, nearestSegment)) {
+        return;
+      }
+
+      startDrawing(stagePoint);
+    },
+    [getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, handleUnselectedSegmentInteraction, startDrawing]
+  );
+
+  const executeToolAction = useCallback(
+    (stagePoint: Point) => {
+      if (popover?.visible) setPopover(null);
+      const toolHandlers: Record<Tool, (stagePoint: Point) => void> = {
+        erase: handleEraseTool,
+        line: handleLineTool,
+      };
+      const handler = toolHandlers[activeTool];
+      if (handler) handler(stagePoint);
+    },
+    [popover, setPopover, activeTool, handleEraseTool, handleLineTool]
+  );
+
   const handleMouseDown = useCallback(
     (e: any) => {
-      if (!cableEngine) return;
       const stage = e.target.getStage();
       const point = stage.getPointerPosition();
-
       const stagePoint = {
         x: point.x - stagePosition.x,
         y: point.y - stagePosition.y,
       };
 
       if (isSpacePressed) {
-        setIsPanning(true);
-        setPanStart({
-          x: point.x - stagePosition.x,
-          y: point.y - stagePosition.y,
-        });
-        if (popover?.visible) {
-          setPopover(null);
-        }
-        return;
-      }
-
-      if (popover?.visible) {
-        setPopover(null);
-      }
-
-      if (activeTool === "erase") {
-        const nearestPoint = getNearestPoint(stagePoint, 10);
-        if (nearestPoint !== null) {
-          const segment = segments[nearestPoint.segment];
-
-          if (segment.connectedTo !== undefined) {
-            const connectedIndex = segment.connectedTo;
-            const connectedSegment = segments[connectedIndex];
-            const pointIndex = nearestPoint.point;
-
-            const isConnPoint = isConnectionPoint(
-              segment,
-              pointIndex,
-              connectedSegment
-            );
-
-            if (isConnPoint) {
-              mergeSegments(nearestPoint.segment);
-              return;
-            }
-          }
-        }
-
-        const nearestSegmentForErase = getNearestSegment(stagePoint, 10);
-        if (nearestSegmentForErase !== null) {
-          deleteSegment(nearestSegmentForErase);
-          return;
-        }
-        return;
-      }
-
-      if (activeTool === "line") {
-        const nearestPoint = getNearestPoint(stagePoint, 10);
-        const nearestSegment = getNearestSegment(stagePoint, 10);
-        
-        // If a segment is selected, only allow modifying it (no drawing)
-        if (selectedSegmentIndex !== null) {
-          // Check for double-click on selected segment
-          if (nearestSegment === selectedSegmentIndex) {
-            const now = Date.now();
-            const lastClick = lastClickRef.current;
-
-            if (
-              lastClick.point &&
-              lastClick.point.segment === selectedSegmentIndex &&
-              now - lastClick.time < 300
-            ) {
-              if (dragTimeoutRef.current) {
-                clearTimeout(dragTimeoutRef.current);
-                dragTimeoutRef.current = null;
-              }
-              lastClickRef.current = { time: 0, point: null };
-
-              const segment = segments[selectedSegmentIndex];
-              const midPoint = segment.points.length > 0 
-                ? segment.points[Math.floor(segment.points.length / 2)]
-                : segment.points[0];
-              
-              onSegmentDoubleClick(
-                selectedSegmentIndex,
-                midPoint.x + stagePosition.x,
-                midPoint.y + stagePosition.y
-              );
-              return;
-            }
-
-            lastClickRef.current = { time: now, point: { segment: selectedSegmentIndex, point: 0 } };
-          }
-
-          // If clicking on a point of the selected segment
-          if (nearestPoint !== null && nearestPoint.segment === selectedSegmentIndex) {
-            const segment = segments[selectedSegmentIndex];
-            const isEndpoint = nearestPoint.point === 0 || nearestPoint.point === segment.points.length - 1;
-            
-            if (isEndpoint) {
-              // Clicking on endpoint → drag that point to resize
-              setIsDraggingPoint(true);
-              setHoveredPointIndex(nearestPoint);
-            } else {
-              // Clicking on middle point → drag that point
-              setIsDraggingPoint(true);
-              setHoveredPointIndex(nearestPoint);
-            }
-            setDragStart(stagePoint);
-            return;
-          }
-
-          // If clicking on the body of the selected segment → drag the whole segment
-          if (nearestSegment === selectedSegmentIndex && nearestPoint === null) {
-            setIsDraggingSegment(true);
-            setDragStart(stagePoint);
-            return;
-          }
-
-          // If clicking outside the selected segment, deselect it
-          if (nearestSegment !== selectedSegmentIndex) {
-            setSelectedSegmentIndex(null);
-            // Continue to handle the click (select new segment or start drawing)
-          } else {
-            // Clicking on selected segment but not starting drag - just return
-            return;
-          }
-        }
-
-        // No segment selected - allow normal interactions
-        // First check if clicking near a segment endpoint to start drawing from there
-        const nearestEndpoint = getNearestSegmentEndpoint(stagePoint, 15);
-        if (nearestEndpoint !== null) {
-          const snappedPoint = snapPoint(nearestEndpoint.point);
-          setIsDrawing(true);
-          setCurrentSegment([snappedPoint]);
-          return;
-        }
-
-        // Check for segment double-click
-        if (nearestSegment !== null) {
-          const now = Date.now();
-          const lastClick = lastClickRef.current;
-
-          if (
-            lastClick.point &&
-            lastClick.point.segment === nearestSegment &&
-            now - lastClick.time < 300
-          ) {
-            if (dragTimeoutRef.current) {
-              clearTimeout(dragTimeoutRef.current);
-              dragTimeoutRef.current = null;
-            }
-            lastClickRef.current = { time: 0, point: null };
-
-            const segment = segments[nearestSegment];
-            const midPoint = segment.points.length > 0 
-              ? segment.points[Math.floor(segment.points.length / 2)]
-              : segment.points[0];
-            
-            onSegmentDoubleClick(
-              nearestSegment,
-              midPoint.x + stagePosition.x,
-              midPoint.y + stagePosition.y
-            );
-            return;
-          }
-
-          lastClickRef.current = { time: now, point: { segment: nearestSegment, point: 0 } };
-        }
-
-        // Single click on segment → select it
-        if (nearestSegment !== null) {
-          setSelectedSegmentIndex(nearestSegment);
-          setDragStart(stagePoint);
-          return;
-        }
-
-        // Otherwise, start drawing from clicked location
-        const snappedPoint = snapPoint(stagePoint);
-        setIsDrawing(true);
-        setCurrentSegment([snappedPoint]);
+        handlePanning(point);
+      } else {
+        executeToolAction(stagePoint);
       }
     },
-    [
-      cableEngine,
-      segments,
-      activeTool,
-      isSpacePressed,
-      stagePosition,
-      popover,
-      getNearestPoint,
-      getNearestSegment,
-      getNearestSegmentEndpoint,
-      selectedSegmentIndex,
-      deleteSegment,
-      mergeSegments,
-      setIsPanning,
-      setPanStart,
-      setIsDraggingPoint,
-      setIsDraggingSegment,
-      setSelectedSegmentIndex,
-      setHoveredPointIndex,
-      setDragStart,
-      setIsDrawing,
-      setCurrentSegment,
-      setPopover,
-      onSegmentDoubleClick,
-      snapPoint,
-    ]
+    [isSpacePressed, stagePosition, handlePanning, executeToolAction]
   );
 
   return {

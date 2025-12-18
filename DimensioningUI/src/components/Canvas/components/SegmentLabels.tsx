@@ -68,12 +68,10 @@ export function SegmentLabels({ segments, scaleFactor }: SegmentLabelsProps) {
             y={y}
             text={labelText}
             fontSize={10}
-            fill="#ffffff"
             fontStyle="bold"
             align={align}
             verticalAlign={verticalAlign}
             padding={4}
-            fillEnabled={true}
             fill="#00000080"
             shadowBlur={2}
             shadowColor="#000000"

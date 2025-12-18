@@ -5,13 +5,25 @@ import type { CableSegment, Point } from "../types";
 import { calculateSegmentLength } from "../utils";
 import { DEFAULTS } from "../../../lib/defaults";
 
+const isPositive = (value: number): boolean => {
+  return value > 0;
+};
+
+const hasInvalidValues = (current: number, resistivity: number, scale: number): boolean => {
+  const isCurrentValid = isPositive(current);
+  const isResistivityValid = isPositive(resistivity);
+  const isScaleValid = isPositive(scale);
+  return !isCurrentValid || !isResistivityValid || !isScaleValid;
+};
+
 export function useVoltageDrop(
   cableEngine: CableEngine | null,
   segments: CableSegment[],
   currentSegment: Point[],
   current: string,
   resistivity: string,
-  scale: string
+  scale: string,
+  isThreePhase: boolean = false
 ) {
   const [result, setResult] = useState<number | null>(null);
 
@@ -24,11 +36,7 @@ export function useVoltageDrop(
     const resistivityValue = parseNumber(resistivity);
     const scaleValue = parseNumber(scale);
 
-    if (
-      currentValue <= 0 ||
-      resistivityValue <= 0 ||
-      scaleValue <= 0
-    ) {
+    if (hasInvalidValues(currentValue, resistivityValue, scaleValue)) {
       return null;
     }
 
@@ -65,14 +73,30 @@ export function useVoltageDrop(
     const sectionsArray = new Float64Array(sections);
 
     try {
-      const voltageDrop = await cableEngine.voltageDropChain({
-        currentA: currentValue,
-        resistivity: resistivityValue,
-        lengths: lengthsArray,
-        sections: sectionsArray,
-        count: allSegments.length,
-      });
-      return voltageDrop;
+      if (isThreePhase) {
+        // Three-phase: calculate each segment individually and sum
+        let total = 0;
+        for (let i = 0; i < allSegments.length; i++) {
+          const segmentDrop = await cableEngine.voltageDropThree(
+            currentValue,
+            lengths[i],
+            resistivityValue,
+            sections[i]
+          );
+          total += segmentDrop;
+        }
+        return total;
+      } else {
+        // Single-phase: use chain calculation
+        const voltageDrop = await cableEngine.voltageDropChain({
+          currentA: currentValue,
+          resistivity: resistivityValue,
+          lengths: lengthsArray,
+          sections: sectionsArray,
+          count: allSegments.length,
+        });
+        return voltageDrop;
+      }
     } catch (error) {
       console.error("Calculation error:", error);
       return -1;
@@ -84,6 +108,7 @@ export function useVoltageDrop(
     current,
     resistivity,
     scale,
+    isThreePhase,
   ]);
 
   useEffect(() => {

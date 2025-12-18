@@ -74,9 +74,6 @@ function SegmentLine({
     if (stage) {
       const pos = stage.getPointerPosition();
       if (pos) {
-        const midPoint = segment.points.length > 0 
-          ? segment.points[Math.floor(segment.points.length / 2)]
-          : segment.points[0];
         onSegmentDoubleClick(segIndex, pos.x, pos.y);
       }
     }

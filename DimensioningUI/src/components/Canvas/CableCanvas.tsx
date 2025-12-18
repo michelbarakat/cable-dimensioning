@@ -4,7 +4,6 @@ import type { CableSegment, Point, Tool, HoveredPoint } from "./types";
 import { MIN_SCALE, MAX_SCALE } from "./constants";
 import { ResultBox } from "./ResultBox";
 import { InputFields } from "./components/InputFields";
-import { ScaleControl } from "./components/ScaleControl";
 import { CanvasControls } from "./components/CanvasControls";
 import { Toolbar } from "./components/Toolbar";
 import { CanvasStage } from "./components/CanvasStage";
@@ -34,6 +33,7 @@ const CableCanvas = ({
   const [current, setCurrent] = useState<string>(DEFAULTS.CURRENT);
   const [resistivity, setResistivity] = useState<string>(DEFAULTS.RESISTIVITY);
   const [scale, setScale] = useState<number>(DEFAULTS.SCALE);
+  const [isThreePhase, setIsThreePhase] = useState<boolean>(false);
   const [baseScale, setBaseScale] = useState<number>(DEFAULTS.SCALE); // Scale at which segments were created
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentSegment, setCurrentSegment] = useState<Point[]>([]);
@@ -82,7 +82,8 @@ const CableCanvas = ({
     currentSegment,
     current,
     resistivity,
-    scale.toString()
+    scale.toString(),
+    isThreePhase
   );
   
   const gridLines = useGrid(showGrid, scale.toString(), stageSize, stagePosition);
@@ -608,14 +609,10 @@ const CableCanvas = ({
           <InputFields
             current={current}
             resistivity={resistivity}
+            isThreePhase={isThreePhase}
             setCurrent={setCurrent}
             setResistivity={setResistivity}
-          />
-
-          <ScaleControl
-            scale={scale}
-            onIncrement={handleScaleIncrement}
-            onDecrement={handleScaleDecrement}
+            setIsThreePhase={setIsThreePhase}
           />
 
           <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
@@ -630,7 +627,13 @@ const CableCanvas = ({
               handleRedo={handleRedo}
               handleClear={handleClear}
             />
-            <Toolbar activeTool={activeTool} setActiveTool={setActiveTool} />
+            <Toolbar 
+              activeTool={activeTool} 
+              setActiveTool={setActiveTool}
+              scale={scale}
+              onScaleIncrement={handleScaleIncrement}
+              onScaleDecrement={handleScaleDecrement}
+            />
             <div ref={containerRef} className="relative">
               <CanvasStage
                 stageSize={stageSize}
