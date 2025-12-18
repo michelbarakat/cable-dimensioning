@@ -265,7 +265,7 @@ export function SegmentPropertiesPopover({
 
       <div className="mb-3">
         <label className="text-gray-300 text-xs mb-1 block">
-          Resistivity (Ω·mm²/m) @ 20°C
+          Resistivity (Ω·mm²/m)
         </label>
         <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-2 text-gray-400 text-sm">
           {resistivity !== null ? resistivity.toFixed(6) : "—"}

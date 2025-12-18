@@ -1,10 +1,12 @@
 import { Text } from "react-konva";
 import type { CableSegment } from "../types";
 import { DEFAULTS } from "../../../lib/defaults";
+import { parseNumber } from "../../../lib/numberInput";
 
 type SegmentLabelsProps = {
   segments: CableSegment[];
   scaleFactor: number;
+  current: string;
 };
 
 function getLabelPosition(
@@ -18,65 +20,92 @@ function getLabelPosition(
   const start = segment.points[0];
   const end = segment.points[segment.points.length - 1];
   
-  // Calculate midpoint
+  // Calculate midpoint - always center labels on the segment
   const midX = (start.x + end.x) / 2;
   const midY = (start.y + end.y) / 2;
   
-  // Calculate angle
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const angle = Math.atan2(dy, dx);
-  
-  // Determine label position based on angle
-  // For horizontal-ish segments (angle close to 0 or π), place label above/below
-  // For vertical-ish segments (angle close to ±π/2), place label left/right
-  const isHorizontal = Math.abs(Math.sin(angle)) < Math.abs(Math.cos(angle));
-  
-  if (isHorizontal) {
-    // Place above or below based on which side has more space
-    return {
-      x: midX * scaleFactor,
-      y: midY * scaleFactor - 20, // Above
-      align: "center",
-      verticalAlign: "bottom",
-    };
-  } else {
-    // Place to the left or right
-    return {
-      x: midX * scaleFactor + 20, // Right
-      y: midY * scaleFactor,
-      align: "left",
-      verticalAlign: "top",
-    };
-  }
+  // Always position labels centered above and below the segment
+  return {
+    x: midX * scaleFactor,
+    y: midY * scaleFactor - 20, // Above segment for cross-section label
+    align: "center",
+    verticalAlign: "bottom",
+  };
 }
 
-export function SegmentLabels({ segments, scaleFactor }: SegmentLabelsProps) {
+const getTemperatureColor = (temperature: string): string => {
+  switch (temperature) {
+    case "Normal Indoor":
+      return "#16a34a"; // Green
+    case "Warm Space":
+      return "#ca8a04"; // Yellow/Amber
+    case "Hot Area":
+      return "#dc2626"; // Red
+    default:
+      return "#16a34a"; // Default to green
+  }
+};
+
+export function SegmentLabels({ segments, scaleFactor, current }: SegmentLabelsProps) {
+  const baseCurrent = parseNumber(current);
+  const hasValidCurrent = !isNaN(baseCurrent) && baseCurrent > 0;
+
   return (
     <>
       {segments.map((segment, segIndex) => {
         const crossSection = segment.crossSection ?? DEFAULTS.CROSS_SECTION;
         const isCopper = segment.isCopper ?? DEFAULTS.IS_COPPER;
+        const temperature = segment.temperature ?? DEFAULTS.TEMPERATURE;
         const { x, y, align, verticalAlign } = getLabelPosition(segment, scaleFactor);
         
         const labelText = `${crossSection.toFixed(2)} mm² ${isCopper ? "Cu" : "Al"}`;
         
+        // Calculate derated current
+        const deratingFactor = DEFAULTS.DERATING_FACTORS[temperature];
+        const deratedCurrent = hasValidCurrent ? baseCurrent * deratingFactor : null;
+        const deratedCurrentText = deratedCurrent !== null 
+          ? `Derated Current: ${deratedCurrent.toFixed(2)} A` 
+          : "Derated Current: — A";
+        const temperatureColor = getTemperatureColor(temperature);
+        
+        // Offset for derated current label (below cross-section)
+        // Cross-section is above segment (y - 20), so derated current goes below it
+        // Increased offset to prevent label from touching the segment
+        const offsetY = 25;
+        
         return (
-          <Text
-            key={`label-${segIndex}`}
-            x={x}
-            y={y}
-            text={labelText}
-            fontSize={10}
-            fontStyle="bold"
-            align={align}
-            verticalAlign={verticalAlign}
-            padding={4}
-            fill="#00000080"
-            shadowBlur={2}
-            shadowColor="#000000"
-            shadowOpacity={0.5}
-          />
+          <>
+            <Text
+              key={`label-${segIndex}`}
+              x={x}
+              y={y}
+              text={labelText}
+              fontSize={10}
+              fontStyle="bold"
+              align={align}
+              verticalAlign={verticalAlign}
+              padding={4}
+              fill="#00000080"
+              shadowBlur={2}
+              shadowColor="#000000"
+              shadowOpacity={0.5}
+            />
+            <Text
+              key={`derated-${segIndex}`}
+              x={x}
+              y={y + offsetY}
+              text={deratedCurrentText}
+              fontSize={10}
+              fontStyle="bold"
+              align={align}
+              verticalAlign="top"
+              padding={4}
+              fill={temperatureColor}
+              shadowBlur={2}
+              shadowColor="#ffffff"
+              shadowOpacity={0.8}
+            />
+          </>
         );
       })}
     </>

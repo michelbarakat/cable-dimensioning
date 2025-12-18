@@ -14,6 +14,7 @@ type CanvasRendererProps = {
   activeTool: Tool;
   scale: number;
   baseScale: number;
+  current: string;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 };
 
@@ -104,6 +105,7 @@ export function CanvasRenderer({
   activeTool,
   scale,
   baseScale,
+  current,
   onSegmentDoubleClick,
 }: CanvasRendererProps) {
   // Calculate scale factor for rendering
@@ -157,6 +159,7 @@ export function CanvasRenderer({
       <SegmentLabels
         segments={segments}
         scaleFactor={scaleFactor}
+        current={current}
       />
     </Layer>
   );

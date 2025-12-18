@@ -647,6 +647,7 @@ const CableCanvas = ({
                 activeTool={activeTool}
                 scale={scale}
                 baseScale={baseScale}
+                current={current}
                 onSegmentDoubleClick={handleSegmentDoubleClick}
                 handleMouseDown={handleMouseDown}
                 handleMouseMove={handleMouseMove}

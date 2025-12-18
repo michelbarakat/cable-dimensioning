@@ -14,6 +14,7 @@ type CanvasStageProps = {
   activeTool: Tool;
   scale: number;
   baseScale: number;
+  current: string;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
   handleMouseDown: (e: any) => void;
   handleMouseMove: (e: any) => void;
@@ -34,6 +35,7 @@ export function CanvasStage({
   activeTool,
   scale,
   baseScale,
+  current,
   onSegmentDoubleClick,
   handleMouseDown,
   handleMouseMove,
@@ -66,6 +68,7 @@ export function CanvasStage({
           activeTool={activeTool}
           scale={scale}
           baseScale={baseScale}
+          current={current}
           onSegmentDoubleClick={onSegmentDoubleClick}
         />
       </Stage>
