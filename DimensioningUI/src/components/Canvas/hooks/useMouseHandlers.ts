@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import type { CableSegment, Point, Tool, HoveredPoint } from "../types";
+import type { CableSegment, Point, Tool, HoveredPoint, TemperaturePreset } from "../types";
 import { snapToGridPoint, isConnectionPoint } from "../utils";
 
 type UseMouseHandlersProps = {
@@ -17,6 +17,7 @@ type UseMouseHandlersProps = {
     segmentIndex: number;
     crossSection: string;
     isCopper: boolean;
+    temperature: TemperaturePreset;
   } | null;
   getNearestPoint: (point: Point, threshold?: number) => HoveredPoint | null;
   getNearestSegment: (point: Point, threshold?: number) => number | null;
@@ -40,6 +41,7 @@ type UseMouseHandlersProps = {
     segmentIndex: number;
     crossSection: string;
     isCopper: boolean;
+    temperature: TemperaturePreset;
   } | null) => void;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 };

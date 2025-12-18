@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
 import { isValidNumberInput, parseNumber } from "../../lib/numberInput";
+import { DEFAULTS } from "../../lib/defaults";
+import type { TemperaturePreset } from "../Canvas/types";
+import { TEMPERATURE_PRESETS } from "../Canvas/types";
 
 const SAMPLE_DATA = {
-  current: "16",
-  deratingFactor: "0.8",
-  ambientTemp: "30",
+  current: DEFAULTS.CURRENT,
+  temperature: DEFAULTS.TEMPERATURE,
 };
 
 type ResultBoxProps = {
@@ -83,22 +85,20 @@ function NumberInput({ id, name, label, value, onChange }: NumberInputProps) {
 
 type FormFieldsProps = {
   current: string;
-  deratingFactor: string;
-  ambientTemp: string;
+  temperature: TemperaturePreset;
+  deratingFactor: number;
   onCurrentChange: (value: string) => void;
-  onDeratingFactorChange: (value: string) => void;
-  onAmbientTempChange: (value: string) => void;
+  onTemperatureChange: (value: TemperaturePreset) => void;
   onCalculate: () => void;
   cableEngine: CableEngine | null;
 };
 
 function FormFields({
   current,
+  temperature,
   deratingFactor,
-  ambientTemp,
   onCurrentChange,
-  onDeratingFactorChange,
-  onAmbientTempChange,
+  onTemperatureChange,
   onCalculate,
   cableEngine,
 }: FormFieldsProps) {
@@ -112,20 +112,37 @@ function FormFields({
           value={current}
           onChange={onCurrentChange}
         />
-        <NumberInput
-          id="derating-factor"
-          name="derating-factor"
-          label="Derating Factor"
-          value={deratingFactor}
-          onChange={onDeratingFactorChange}
-        />
-        <NumberInput
-          id="derating-ambientTemp"
-          name="derating-ambientTemp"
-          label="Ambient Temperature (°C)"
-          value={ambientTemp}
-          onChange={onAmbientTempChange}
-        />
+        <div className="flex flex-col gap-2">
+          <label htmlFor="derating-temperature" className="text-gray-300 font-medium">
+            Temperature Preset
+          </label>
+          <select
+            id="derating-temperature"
+            name="derating-temperature"
+            value={temperature}
+            onChange={(e) => onTemperatureChange(e.target.value as TemperaturePreset)}
+            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+          >
+            {Object.keys(TEMPERATURE_PRESETS).map((preset) => (
+              <option key={preset} value={preset}>
+                {preset} (~{TEMPERATURE_PRESETS[preset as TemperaturePreset]}°C)
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="derating-factor" className="text-gray-300 font-medium">
+            Derating Factor (read-only)
+          </label>
+          <input
+            id="derating-factor"
+            name="derating-factor"
+            type="text"
+            value={deratingFactor.toFixed(2)}
+            readOnly
+            className="bg-gray-900/50 border-2 border-gray-700 rounded-lg p-3 text-gray-400 cursor-not-allowed"
+          />
+        </div>
       </div>
       <button
         onClick={onCalculate}
@@ -152,14 +169,6 @@ function SampleDataBox({ onApply }: SampleDataBoxProps) {
             <td className="pr-2">Current:</td>
             <td className="font-mono">{SAMPLE_DATA.current} A</td>
           </tr>
-          <tr>
-            <td className="pr-2">Factor:</td>
-            <td className="font-mono">{SAMPLE_DATA.deratingFactor}</td>
-          </tr>
-          <tr>
-            <td className="pr-2">Temp:</td>
-            <td className="font-mono">{SAMPLE_DATA.ambientTemp}°C</td>
-          </tr>
         </tbody>
       </table>
       <button
@@ -178,14 +187,14 @@ export default function Derating({
   cableEngine?: CableEngine | null;
 }) {
   const [current, setCurrent] = useState<string>("");
-  const [deratingFactor, setDeratingFactor] = useState<string>("");
-  const [ambientTemp, setAmbientTemp] = useState<string>("");
+  const [temperature, setTemperature] = useState<TemperaturePreset>(DEFAULTS.TEMPERATURE);
   const [result, setResult] = useState<number | null>(null);
+
+  // Derating factor is automatically derived from temperature preset
+  const deratingFactor = DEFAULTS.DERATING_FACTORS[temperature];
 
   const handleApplySample = () => {
     setCurrent(SAMPLE_DATA.current);
-    setDeratingFactor(SAMPLE_DATA.deratingFactor);
-    setAmbientTemp(SAMPLE_DATA.ambientTemp);
   };
 
   const handleCalculate = async () => {
@@ -194,11 +203,20 @@ export default function Derating({
       return;
     }
 
+    const currentValue = parseNumber(current);
+    if (isNaN(currentValue) || currentValue <= 0) {
+      alert("Please enter a valid current value");
+      return;
+    }
+
     try {
+      // applyDerating(baseCurrent, kTemp, kGroup)
+      // kTemp is the temperature derating factor
+      // kGroup is set to 1 (no group derating)
       const deratedCurrent = await cableEngine.applyDerating(
-        parseNumber(current),
-        parseNumber(deratingFactor),
-        parseNumber(ambientTemp)
+        currentValue,
+        deratingFactor,
+        1
       );
       setResult(deratedCurrent);
     } catch (error) {
@@ -216,11 +234,10 @@ export default function Derating({
         </div>
         <FormFields
           current={current}
+          temperature={temperature}
           deratingFactor={deratingFactor}
-          ambientTemp={ambientTemp}
           onCurrentChange={setCurrent}
-          onDeratingFactorChange={setDeratingFactor}
-          onAmbientTempChange={setAmbientTemp}
+          onTemperatureChange={setTemperature}
           onCalculate={handleCalculate}
           cableEngine={cableEngine}
         />

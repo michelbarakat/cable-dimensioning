@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
-import type { CableSegment, Point, Tool, HoveredPoint } from "./types";
+import type { CableSegment, Point, Tool, HoveredPoint, TemperaturePreset } from "./types";
 import { MIN_SCALE, MAX_SCALE } from "./constants";
 import { ResultBox } from "./ResultBox";
 import { InputFields } from "./components/InputFields";
@@ -31,7 +31,6 @@ const CableCanvas = ({
   cableEngine?: CableEngine | null;
 }) => {
   const [current, setCurrent] = useState<string>(DEFAULTS.CURRENT);
-  const [resistivity, setResistivity] = useState<string>(DEFAULTS.RESISTIVITY);
   const [scale, setScale] = useState<number>(DEFAULTS.SCALE);
   const [isThreePhase, setIsThreePhase] = useState<boolean>(false);
   const [baseScale, setBaseScale] = useState<number>(DEFAULTS.SCALE); // Scale at which segments were created
@@ -71,20 +70,20 @@ const CableCanvas = ({
     segmentIndex: number;
     crossSection: string;
     isCopper: boolean;
+    temperature: TemperaturePreset;
   } | null>(null);
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Use hooks
-  const result = useVoltageDrop(
+  const result = useVoltageDrop({
     cableEngine,
     segments,
     currentSegment,
     current,
-    resistivity,
-    scale.toString(),
-    isThreePhase
-  );
+    scale: scale.toString(),
+    isThreePhase,
+  });
   
   const gridLines = useGrid(showGrid, scale.toString(), stageSize, stagePosition);
   const cursor = useCursor(
@@ -127,15 +126,17 @@ const CableCanvas = ({
       segmentIndex,
       crossSection: (segment.crossSection ?? DEFAULTS.CROSS_SECTION).toString(),
       isCopper: segment.isCopper ?? DEFAULTS.IS_COPPER,
+      temperature: segment.temperature ?? DEFAULTS.TEMPERATURE,
     });
   };
 
-  const handleUpdateSegment = (segmentIndex: number, crossSection: number, isCopper: boolean) => {
+  const handleUpdateSegment = (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => {
     const newSegments = [...segments];
     newSegments[segmentIndex] = {
       ...newSegments[segmentIndex],
       crossSection,
       isCopper,
+      temperature,
     };
     setSegments(newSegments);
     saveToHistory(newSegments);
@@ -466,6 +467,7 @@ const CableCanvas = ({
         length,
         crossSection: DEFAULTS.CROSS_SECTION,
         isCopper: DEFAULTS.IS_COPPER,
+        temperature: DEFAULTS.TEMPERATURE,
       },
     ];
     setSegments(newSegments);
@@ -608,10 +610,8 @@ const CableCanvas = ({
         <div className="flex flex-col gap-6">
           <InputFields
             current={current}
-            resistivity={resistivity}
             isThreePhase={isThreePhase}
             setCurrent={setCurrent}
-            setResistivity={setResistivity}
             setIsThreePhase={setIsThreePhase}
           />
 
@@ -660,6 +660,7 @@ const CableCanvas = ({
                 setPopover={setPopover}
                 onUpdateSegment={handleUpdateSegment}
                 cableEngine={cableEngine}
+                current={current}
               />
             </div>
             <ToolInstructions activeTool={activeTool} />

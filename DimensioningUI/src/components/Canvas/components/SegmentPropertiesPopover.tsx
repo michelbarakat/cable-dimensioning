@@ -3,6 +3,8 @@ import { isValidNumberInput, parseNumber } from "../../../lib/numberInput";
 import { DEFAULTS } from "../../../lib/defaults";
 import { RANGES } from "../../../lib/ranges";
 import type { CableEngine } from "../../../lib/cable_dimensioning";
+import type { TemperaturePreset } from "../types";
+import { TEMPERATURE_PRESETS } from "../types";
 
 type SegmentPropertiesPopoverProps = {
   popover: {
@@ -12,6 +14,7 @@ type SegmentPropertiesPopoverProps = {
     segmentIndex: number;
     crossSection: string; // Store as string to allow intermediate states like "2."
     isCopper: boolean;
+    temperature: TemperaturePreset;
   } | null;
   setPopover: (
     popover: {
@@ -21,10 +24,12 @@ type SegmentPropertiesPopoverProps = {
       segmentIndex: number;
       crossSection: string;
       isCopper: boolean;
+      temperature: TemperaturePreset;
     } | null
   ) => void;
-  onUpdateSegment: (segmentIndex: number, crossSection: number, isCopper: boolean) => void;
+  onUpdateSegment: (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => void;
   cableEngine: CableEngine | null;
+  current: string;
 };
 
 export function SegmentPropertiesPopover({
@@ -32,8 +37,11 @@ export function SegmentPropertiesPopover({
   setPopover,
   onUpdateSegment,
   cableEngine,
+  current,
 }: SegmentPropertiesPopoverProps) {
   const [isRounding, setIsRounding] = useState(false);
+  const [resistivity, setResistivity] = useState<number | null>(null);
+  const [deratedCurrent, setDeratedCurrent] = useState<number | null>(null);
   const popoverDataRef = useRef<typeof popover>(null);
 
   // Store popover data when visible
@@ -59,7 +67,7 @@ export function SegmentPropertiesPopover({
               RANGES.CROSS_SECTION.MIN,
               Math.min(RANGES.CROSS_SECTION.MAX, roundedValue)
             );
-            onUpdateSegment(popoverData.segmentIndex, clampedValue, popoverData.isCopper);
+            onUpdateSegment(popoverData.segmentIndex, clampedValue, popoverData.isCopper, popoverData.temperature);
           } catch (error) {
             console.error("Error rounding to standard on close:", error);
           }
@@ -83,21 +91,74 @@ export function SegmentPropertiesPopover({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [popover?.visible, setPopover]);
 
+  // Calculate resistivity when popover data changes (material-based only, at reference 20°C)
+  useEffect(() => {
+    if (!popover?.visible) {
+      setResistivity(null);
+      setDeratedCurrent(null);
+      return;
+    }
+
+    // Use reference resistivity at 20°C based on material only
+    const resistivityValue = popover.isCopper
+      ? DEFAULTS.RESISTIVITY_COPPER
+      : DEFAULTS.RESISTIVITY_ALUMINUM;
+    setResistivity(resistivityValue);
+
+    // Calculate derated current
+    const calculateDeratedCurrent = async () => {
+      if (!cableEngine) {
+        setDeratedCurrent(null);
+        return;
+      }
+
+      const currentValue = parseNumber(current);
+      if (isNaN(currentValue) || currentValue <= 0) {
+        setDeratedCurrent(null);
+        return;
+      }
+
+      const deratingFactor = DEFAULTS.DERATING_FACTORS[popover.temperature];
+      // applyDerating(baseCurrent, kTemp, kGroup) - we only use temperature derating, so kGroup = 1
+      const derated = await cableEngine.applyDerating(currentValue, deratingFactor, 1);
+      setDeratedCurrent(derated);
+    };
+
+    calculateDeratedCurrent();
+  }, [popover?.visible, popover?.isCopper, popover?.temperature, current, cableEngine]);
+
   if (!popover || !popover.visible) return null;
+
+  const INTERMEDIATE_VALUES = new Set(["", ".", ",", "-"]);
+  const isCompleteValue = (value: string): boolean => {
+    return !INTERMEDIATE_VALUES.has(value);
+  };
+
+  const clampCrossSection = (value: number): number => {
+    return Math.max(
+      RANGES.CROSS_SECTION.MIN,
+      Math.min(RANGES.CROSS_SECTION.MAX, value)
+    );
+  };
+
+  const applySegmentUpdate = (updatedPopover: NonNullable<typeof popover>) => {
+    const numValue = parseNumber(updatedPopover.crossSection) || DEFAULTS.CROSS_SECTION;
+    const clampedValue = clampCrossSection(numValue);
+    onUpdateSegment(
+      updatedPopover.segmentIndex,
+      clampedValue,
+      updatedPopover.isCopper,
+      updatedPopover.temperature
+    );
+  };
 
   const handleCrossSectionChange = (value: string) => {
     if (isValidNumberInput(value)) {
       const updatedPopover = { ...popover, crossSection: value };
       setPopover(updatedPopover);
       // Apply changes immediately (only if value is complete, not intermediate like "2.")
-      const numValue = parseNumber(value);
-      if (value !== "" && value !== "." && value !== "," && value !== "-") {
-        // Clamp value to valid range
-        const clampedValue = Math.max(
-          RANGES.CROSS_SECTION.MIN,
-          Math.min(RANGES.CROSS_SECTION.MAX, numValue)
-        );
-        onUpdateSegment(updatedPopover.segmentIndex, clampedValue, updatedPopover.isCopper);
+      if (isCompleteValue(value)) {
+        applySegmentUpdate(updatedPopover);
       }
     }
   };
@@ -111,13 +172,10 @@ export function SegmentPropertiesPopover({
     setIsRounding(true);
     try {
       const roundedValue = await cableEngine.roundToStandard(numValue);
-      const clampedValue = Math.max(
-        RANGES.CROSS_SECTION.MIN,
-        Math.min(RANGES.CROSS_SECTION.MAX, roundedValue)
-      );
+      const clampedValue = clampCrossSection(roundedValue);
       const updatedPopover = { ...popover, crossSection: clampedValue.toString() };
       setPopover(updatedPopover);
-      onUpdateSegment(updatedPopover.segmentIndex, clampedValue, updatedPopover.isCopper);
+      applySegmentUpdate(updatedPopover);
     } catch (error) {
       console.error("Error rounding to standard:", error);
     } finally {
@@ -129,13 +187,14 @@ export function SegmentPropertiesPopover({
     const isCopper = e.target.checked;
     const updatedPopover = { ...popover, isCopper };
     setPopover(updatedPopover);
-    // Apply changes immediately - use parsed value or default
-    const numValue = parseNumber(popover.crossSection) || DEFAULTS.CROSS_SECTION;
-    const clampedValue = Math.max(
-      RANGES.CROSS_SECTION.MIN,
-      Math.min(RANGES.CROSS_SECTION.MAX, numValue)
-    );
-    onUpdateSegment(updatedPopover.segmentIndex, clampedValue, updatedPopover.isCopper);
+    applySegmentUpdate(updatedPopover);
+  };
+
+  const handleTemperatureChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const temperature = e.target.value as TemperaturePreset;
+    const updatedPopover = { ...popover, temperature };
+    setPopover(updatedPopover);
+    applySegmentUpdate(updatedPopover);
   };
 
   return (
@@ -151,6 +210,8 @@ export function SegmentPropertiesPopover({
       <div className="mb-3">
         <label className="text-gray-300 text-xs mb-1 block">
           Cross Section (mm²) [{RANGES.CROSS_SECTION.MIN} - {RANGES.CROSS_SECTION.MAX}]
+          <br />
+          This will be rounded to the nearest standard size.
         </label>
         <div className="flex gap-2">
           <input
@@ -183,6 +244,50 @@ export function SegmentPropertiesPopover({
           />
           <span>Copper?</span>
         </label>
+      </div>
+
+      <div className="mb-3">
+        <label className="text-gray-300 text-xs mb-1 block">
+          Temperature
+        </label>
+        <select
+          value={popover.temperature}
+          onChange={handleTemperatureChange}
+          className="bg-gray-900 border-2 border-gray-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none transition-colors w-full text-sm"
+        >
+          {Object.keys(TEMPERATURE_PRESETS).map((preset) => (
+            <option key={preset} value={preset}>
+              {preset} (~{TEMPERATURE_PRESETS[preset as TemperaturePreset]}°C)
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-3">
+        <label className="text-gray-300 text-xs mb-1 block">
+          Resistivity (Ω·mm²/m) @ 20°C
+        </label>
+        <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-2 text-gray-400 text-sm">
+          {resistivity !== null ? resistivity.toFixed(6) : "—"}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="text-gray-300 text-xs mb-1 block">
+          Derating Factor ({popover.temperature})
+        </label>
+        <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-2 text-gray-400 text-sm">
+          {DEFAULTS.DERATING_FACTORS[popover.temperature].toFixed(2)}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <label className="text-gray-300 text-xs mb-1 block">
+          Derated Current (A)
+        </label>
+        <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-2 text-gray-400 text-sm">
+          {deratedCurrent !== null ? deratedCurrent.toFixed(2) : "—"}
+        </div>
       </div>
 
       <div className="text-xs text-gray-400 text-center mt-2">

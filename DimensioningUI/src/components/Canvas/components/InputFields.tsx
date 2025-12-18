@@ -3,10 +3,8 @@ import { RANGES } from "../../../lib/ranges";
 
 type InputFieldsProps = {
   current: string;
-  resistivity: string;
   isThreePhase: boolean;
   setCurrent: (value: string) => void;
-  setResistivity: (value: string) => void;
   setIsThreePhase: (value: boolean) => void;
 };
 
@@ -20,7 +18,12 @@ const isWithinRange = (numValue: number, min: number, max: number): boolean => {
   return numValue >= min && numValue <= max;
 };
 
-const isValidValue = (value: string, numValue: number, min: number, max: number): boolean => {
+const isValidValue = (
+  value: string,
+  numValue: number,
+  min: number,
+  max: number
+): boolean => {
   return isIntermediateValue(value) || isWithinRange(numValue, min, max);
 };
 
@@ -33,8 +36,9 @@ const createNumberInputHandler = (
     const value = e.target.value;
     const isValidInput = isValidNumberInput(value);
     const numValue = parseNumber(value);
-    const shouldUpdate = isValidInput && isValidValue(value, numValue, min, max);
-    
+    const shouldUpdate =
+      isValidInput && isValidValue(value, numValue, min, max);
+
     if (shouldUpdate) {
       setValue(value);
     }
@@ -43,10 +47,8 @@ const createNumberInputHandler = (
 
 export function InputFields({
   current,
-  resistivity,
   isThreePhase,
   setCurrent,
-  setResistivity,
   setIsThreePhase,
 }: InputFieldsProps) {
   const handleCurrentChange = createNumberInputHandler(
@@ -55,19 +57,10 @@ export function InputFields({
     RANGES.CURRENT.MAX
   );
 
-  const handleResistivityChange = createNumberInputHandler(
-    setResistivity,
-    RANGES.RESISTIVITY.MIN,
-    RANGES.RESISTIVITY.MAX
-  );
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex flex-col gap-2">
-        <label
-          htmlFor="canvas-current"
-          className="text-gray-300 font-medium"
-        >
+        <label htmlFor="canvas-current" className="text-gray-300 font-medium">
           Current (A) [{RANGES.CURRENT.MIN} - {RANGES.CURRENT.MAX}]
         </label>
         <input
@@ -80,24 +73,8 @@ export function InputFields({
           className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <label
-          htmlFor="canvas-resistivity"
-          className="text-gray-300 font-medium"
-        >
-          Resistivity (Ω·mm²/m) [{RANGES.RESISTIVITY.MIN} - {RANGES.RESISTIVITY.MAX}]
-        </label>
-        <input
-          id="canvas-resistivity"
-          name="canvas-resistivity"
-          type="text"
-          inputMode="decimal"
-          value={resistivity}
-          onChange={handleResistivityChange}
-          className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
-        />
-      </div>
-      <div className="flex items-center gap-2 bg-gray-900 border-2 border-gray-700 rounded-lg p-3">
+
+      <div className="flex items-center gap-2">
         <input
           type="checkbox"
           id="three-phase-toggle"
@@ -115,4 +92,3 @@ export function InputFields({
     </div>
   );
 }
-
