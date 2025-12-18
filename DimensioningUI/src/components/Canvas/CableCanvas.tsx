@@ -659,6 +659,7 @@ const CableCanvas = ({
                 popover={popover}
                 setPopover={setPopover}
                 onUpdateSegment={handleUpdateSegment}
+                cableEngine={cableEngine}
               />
             </div>
             <ToolInstructions activeTool={activeTool} />

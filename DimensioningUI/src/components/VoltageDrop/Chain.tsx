@@ -152,8 +152,10 @@ type FormFieldsProps = {
   current: string;
   resistivity: string;
   segments: Segment[];
+  isThreePhase: boolean;
   onCurrentChange: (value: string) => void;
   onResistivityChange: (value: string) => void;
+  onIsThreePhaseChange: (value: boolean) => void;
   onAddSegment: () => void;
   onChangeSegment: (index: number, field: keyof Segment, value: string) => void;
   onRemoveSegment: (index: number) => void;
@@ -164,8 +166,10 @@ function FormFields({
   current,
   resistivity,
   segments,
+  isThreePhase,
   onCurrentChange,
   onResistivityChange,
+  onIsThreePhaseChange,
   onAddSegment,
   onChangeSegment,
   onRemoveSegment,
@@ -209,6 +213,21 @@ function FormFields({
               }
             }}
           />
+        </div>
+        <div className="flex items-center gap-2 bg-gray-900 border-2 border-gray-700 rounded-lg p-3">
+          <input
+            type="checkbox"
+            id="chain-three-phase"
+            checked={isThreePhase}
+            onChange={(e) => onIsThreePhaseChange(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <label
+            htmlFor="chain-three-phase"
+            className="text-gray-300 font-medium cursor-pointer"
+          >
+            Three Phase
+          </label>
         </div>
       </div>
       <SegmentsList
@@ -270,6 +289,7 @@ function SampleDataBox({ onApply }: SampleDataBoxProps) {
 const Chain = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => {
   const [current, setCurrent] = useState<string>("");
   const [resistivity, setResistivity] = useState<string>("");
+  const [isThreePhase, setIsThreePhase] = useState<boolean>(false);
   const [segments, setSegments] = useState<Segment[]>([
     { length: 0, section: 0 },
   ]);
@@ -303,18 +323,42 @@ const Chain = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => 
   const handleCalculate = async () => {
     if (!cableEngine || segments.length === 0) return;
 
-    const lengths = new Float64Array(segments.map((s) => s.length));
-    const sections = new Float64Array(segments.map((s) => s.section));
+    const currentValue = parseNumber(current);
+    const resistivityValue = parseNumber(resistivity);
 
-    const d = await cableEngine.voltageDropChain({
-      currentA: parseNumber(current),
-      resistivity: parseNumber(resistivity),
-      lengths,
-      sections,
-      count: segments.length,
-    });
+    try {
+      if (isThreePhase) {
+        // Three-phase: calculate each segment individually and sum
+        let total = 0;
+        for (const segment of segments) {
+          const segmentDrop = await cableEngine.voltageDropThree(
+            currentValue,
+            segment.length,
+            resistivityValue,
+            segment.section
+          );
+          total += segmentDrop;
+        }
+        setResult(total);
+      } else {
+        // Single-phase: use chain calculation
+        const lengths = new Float64Array(segments.map((s) => s.length));
+        const sections = new Float64Array(segments.map((s) => s.section));
 
-    setResult(d);
+        const d = await cableEngine.voltageDropChain({
+          currentA: currentValue,
+          resistivity: resistivityValue,
+          lengths,
+          sections,
+          count: segments.length,
+        });
+
+        setResult(d);
+      }
+    } catch (error) {
+      console.error("Calculation error:", error);
+      setResult(-1);
+    }
   };
 
   return (
@@ -328,8 +372,10 @@ const Chain = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => 
           current={current}
           resistivity={resistivity}
           segments={segments}
+          isThreePhase={isThreePhase}
           onCurrentChange={setCurrent}
           onResistivityChange={setResistivity}
+          onIsThreePhaseChange={setIsThreePhase}
           onAddSegment={handleAddSegment}
           onChangeSegment={handleChangeSegment}
           onRemoveSegment={handleRemoveSegment}
