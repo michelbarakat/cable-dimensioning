@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Text } from "react-konva";
 import type { CableSegment } from "../types";
 import { DEFAULTS } from "../../../lib/defaults";
@@ -74,9 +75,8 @@ export function SegmentLabels({ segments, scaleFactor, current }: SegmentLabelsP
         const offsetY = 25;
         
         return (
-          <>
+          <Fragment key={`segment-labels-${segIndex}`}>
             <Text
-              key={`label-${segIndex}`}
               x={x}
               y={y}
               text={labelText}
@@ -91,7 +91,6 @@ export function SegmentLabels({ segments, scaleFactor, current }: SegmentLabelsP
               shadowOpacity={0.5}
             />
             <Text
-              key={`derated-${segIndex}`}
               x={x}
               y={y + offsetY}
               text={deratedCurrentText}
@@ -105,7 +104,7 @@ export function SegmentLabels({ segments, scaleFactor, current }: SegmentLabelsP
               shadowColor="#ffffff"
               shadowOpacity={0.8}
             />
-          </>
+          </Fragment>
         );
       })}
     </>

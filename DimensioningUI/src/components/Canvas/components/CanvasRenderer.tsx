@@ -35,6 +35,13 @@ function GridLines({ gridLines }: { gridLines: Array<{ points: number[]; key: st
   );
 }
 
+function isValidSegment(segment: CableSegment | null | undefined): boolean {
+  if (!segment) return false;
+  if (!segment.points) return false;
+  if (!Array.isArray(segment.points)) return false;
+  return segment.points.length > 0;
+}
+
 function SegmentLine({
   segment,
   segIndex,
@@ -80,6 +87,11 @@ function SegmentLine({
     }
   };
 
+  // Safety check: ensure segment.points exists and is valid
+  if (!isValidSegment(segment)) {
+    return null;
+  }
+
   return (
     <Line
       key={`segment-${segIndex}`}
@@ -114,17 +126,23 @@ export function CanvasRenderer({
   return (
     <Layer>
       <GridLines gridLines={gridLines} />
-      {segments.map((segment, segIndex) => (
-        <SegmentLine
-          key={`segment-${segIndex}`}
-          segment={segment}
-          segIndex={segIndex}
-          scaleFactor={scaleFactor}
-          selectedSegmentIndex={selectedSegmentIndex}
-          hoveredSegmentIndex={hoveredSegmentIndex}
-          onSegmentDoubleClick={onSegmentDoubleClick}
-        />
-      ))}
+      {segments.map((segment, segIndex) => {
+        // Safety check: skip invalid segments
+        if (!isValidSegment(segment)) {
+          return null;
+        }
+        return (
+          <SegmentLine
+            key={`segment-${segIndex}`}
+            segment={segment}
+            segIndex={segIndex}
+            scaleFactor={scaleFactor}
+            selectedSegmentIndex={selectedSegmentIndex}
+            hoveredSegmentIndex={hoveredSegmentIndex}
+            onSegmentDoubleClick={onSegmentDoubleClick}
+          />
+        );
+      })}
       {currentPoints.length > 1 && (
         <Line
           points={currentPoints.flatMap((p) => [p.x * scaleFactor, p.y * scaleFactor])}
@@ -135,18 +153,24 @@ export function CanvasRenderer({
           dash={[5, 5]}
         />
       )}
-      {segments.map((segment, segIndex) => (
-        <SegmentPoints
-          key={`points-${segIndex}`}
-          segments={segments}
-          segIndex={segIndex}
-          segment={segment}
-          scaleFactor={scaleFactor}
-          hoveredPointIndex={hoveredPointIndex}
-          selectedSegmentIndex={selectedSegmentIndex}
-          activeTool={activeTool}
-        />
-      ))}
+      {segments.map((segment, segIndex) => {
+        // Safety check: skip invalid segments
+        if (!isValidSegment(segment)) {
+          return null;
+        }
+        return (
+          <SegmentPoints
+            key={`points-${segIndex}`}
+            segments={segments}
+            segIndex={segIndex}
+            segment={segment}
+            scaleFactor={scaleFactor}
+            hoveredPointIndex={hoveredPointIndex}
+            selectedSegmentIndex={selectedSegmentIndex}
+            activeTool={activeTool}
+          />
+        );
+      })}
       {currentPoints.map((point, index) => (
         <Circle
           key={`current-point-${index}`}

@@ -1,6 +1,9 @@
 // Web Worker for WASM cable dimensioning module
 // This worker loads and executes WASM functions in a separate thread
 
+// Type declaration for Web Worker global function
+declare function importScripts(...urls: string[]): void;
+
 type WorkerRequest = 
   | { type: 'init' }
   | { type: 'call'; id: number; functionName: string; args: any[] }
@@ -68,7 +71,7 @@ async function initModule(): Promise<void> {
       };
 
       // Load WASM script
-      importScripts('/wasm/cable_dimensioning.js');
+      (self as any).importScripts('/wasm/cable_dimensioning.js');
 
       // Check if module is already initialized
       if ((self as any).Module?.cwrap && (self as any).Module.calledRun) {

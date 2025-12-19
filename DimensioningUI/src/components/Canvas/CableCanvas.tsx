@@ -56,7 +56,7 @@ const CableCanvas = ({
   const [isDraggingPoint, setIsDraggingPoint] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [stageSize, setStageSize] = useState({ width: 800, height: 500 });
-  const [activeTool, setActiveTool] = useState<Tool>("line");
+  const [activeTool, setActiveTool] = useState<Tool>("select");
   const [tooltip, setTooltip] = useState<{
     text: string;
     x: number;
@@ -108,12 +108,48 @@ const CableCanvas = ({
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
-  const { mergeSegments, deleteSegment } = useSegmentOperations(
+  const { mergeSegments, deleteSegment: deleteSegmentInternal } = useSegmentOperations(
     segments,
     scale.toString(),
     snapToGrid,
     setSegments,
     saveToHistory
+  );
+
+  const deleteSegment = useCallback(
+    (segmentIndex: number): void => {
+      deleteSegmentInternal(segmentIndex);
+      
+      // Clear selection and hover states if the deleted segment was selected/hovered
+      // Also adjust indices for segments that come after the deleted one
+      if (selectedSegmentIndex !== null) {
+        if (selectedSegmentIndex === segmentIndex) {
+          setSelectedSegmentIndex(null);
+        } else if (selectedSegmentIndex > segmentIndex) {
+          setSelectedSegmentIndex(selectedSegmentIndex - 1);
+        }
+      }
+      
+      if (hoveredSegmentIndex !== null) {
+        if (hoveredSegmentIndex === segmentIndex) {
+          setHoveredSegmentIndex(null);
+        } else if (hoveredSegmentIndex > segmentIndex) {
+          setHoveredSegmentIndex(hoveredSegmentIndex - 1);
+        }
+      }
+      
+      // Close popover if it was open for the deleted segment
+      if (popover?.segmentIndex === segmentIndex) {
+        setPopover(null);
+      } else if (popover?.segmentIndex !== undefined && popover.segmentIndex > segmentIndex) {
+        // Adjust popover segment index if needed
+        setPopover({
+          ...popover,
+          segmentIndex: popover.segmentIndex - 1,
+        });
+      }
+    },
+    [deleteSegmentInternal, selectedSegmentIndex, hoveredSegmentIndex, popover, setSelectedSegmentIndex, setHoveredSegmentIndex, setPopover]
   );
 
   const handleSegmentDoubleClick = (segmentIndex: number, x: number, y: number) => {

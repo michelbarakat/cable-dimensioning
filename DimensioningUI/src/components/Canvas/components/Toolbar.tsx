@@ -20,6 +20,18 @@ export function Toolbar({
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-2">
           <button
+            onClick={() => setActiveTool("select")}
+            className={`px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm flex items-center gap-2 ${
+              activeTool === "select"
+                ? "bg-green-600 hover:bg-green-500 text-white"
+                : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+            }`}
+            title="Selection Tool - Move and resize segments"
+          >
+            <span className="text-lg">↔️</span>
+            <span>Select</span>
+          </button>
+          <button
             onClick={() => setActiveTool("line")}
             className={`px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm flex items-center gap-2 ${
               activeTool === "line"

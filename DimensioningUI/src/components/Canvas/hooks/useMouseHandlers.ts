@@ -255,20 +255,61 @@ export function useMouseHandlers({
 
   const handleLineTool = useCallback(
     (stagePoint: Point) => {
+      // Deselect any selected segment when using line tool
+      if (selectedSegmentIndex !== null) {
+        setSelectedSegmentIndex(null);
+      }
+
       const nearestPoint = getNearestPoint(stagePoint, 10);
       const nearestSegment = getNearestSegment(stagePoint, 10);
       
+      // Check for double-click to open popover (but don't allow moving/resizing)
+      if (nearestSegment !== null && checkAndHandleDoubleClick(nearestSegment)) {
+        return;
+      }
+
+      // Check if clicking near an endpoint to start drawing from there
+      const nearestEndpoint = getNearestSegmentEndpoint(stagePoint, 15);
+      if (nearestEndpoint !== null) {
+        startDrawing(nearestEndpoint.point);
+        return;
+      }
+
+      // Otherwise, start drawing from the clicked location
+      startDrawing(stagePoint);
+    },
+    [selectedSegmentIndex, setSelectedSegmentIndex, getNearestPoint, getNearestSegment, getNearestSegmentEndpoint, checkAndHandleDoubleClick, startDrawing]
+  );
+
+  const handleSelectTool = useCallback(
+    (stagePoint: Point) => {
+      const nearestPoint = getNearestPoint(stagePoint, 10);
+      const nearestSegment = getNearestSegment(stagePoint, 10);
+      
+      // Handle interactions with selected segment (move/resize)
       if (handleSelectedSegmentInteraction(stagePoint, nearestPoint, nearestSegment)) {
         return;
       }
 
-      if (handleUnselectedSegmentInteraction(stagePoint, nearestSegment)) {
+      // Handle interactions with unselected segments (select only, no drawing)
+      if (nearestSegment === null) {
+        // Clicking on empty space - deselect if something is selected
+        if (selectedSegmentIndex !== null) {
+          setSelectedSegmentIndex(null);
+        }
         return;
       }
 
-      startDrawing(stagePoint);
+      // Check for double-click to open popover
+      if (checkAndHandleDoubleClick(nearestSegment)) {
+        return;
+      }
+
+      // Single click on segment - select it
+      setSelectedSegmentIndex(nearestSegment);
+      setDragStart(stagePoint);
     },
-    [getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, handleUnselectedSegmentInteraction, startDrawing]
+    [getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, checkAndHandleDoubleClick, selectedSegmentIndex, setSelectedSegmentIndex, setDragStart]
   );
 
   const executeToolAction = useCallback(
@@ -277,11 +318,12 @@ export function useMouseHandlers({
       const toolHandlers: Record<Tool, (stagePoint: Point) => void> = {
         erase: handleEraseTool,
         line: handleLineTool,
+        select: handleSelectTool,
       };
       const handler = toolHandlers[activeTool];
       if (handler) handler(stagePoint);
     },
-    [popover, setPopover, activeTool, handleEraseTool, handleLineTool]
+    [popover, setPopover, activeTool, handleEraseTool, handleLineTool, handleSelectTool]
   );
 
   const handleMouseDown = useCallback(

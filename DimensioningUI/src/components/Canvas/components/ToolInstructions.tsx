@@ -7,7 +7,11 @@ type ToolInstructionsProps = {
 export function ToolInstructions({ activeTool }: ToolInstructionsProps) {
   return (
     <p className="text-gray-400 text-sm mt-2">
-      {activeTool === "erase" ? (
+      {activeTool === "select" ? (
+        <>
+          ↔️ <strong>Selection Tool:</strong> Click to select segments. Drag endpoints to resize, drag body to move. Double-click to edit properties.
+        </>
+      ) : activeTool === "erase" ? (
         <>
           🗑️ <strong>Erase Tool:</strong> Click to delete segments.
         </>
