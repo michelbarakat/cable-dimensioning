@@ -8,13 +8,14 @@ type CanvasStageProps = {
   gridLines: Array<{ points: number[]; key: string }>;
   segments: CableSegment[];
   currentPoints: Point[];
-  selectedSegmentIndex: number | null;
+  selectedSegmentIndices: number[];
   hoveredSegmentIndex: number | null;
   hoveredPointIndex: HoveredPoint | null;
   activeTool: Tool;
   scale: number;
   baseScale: number;
   current: string;
+  selectionBox: { start: Point; end: Point } | null;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
   handleMouseDown: (e: any) => void;
   handleMouseMove: (e: any) => void;
@@ -29,13 +30,14 @@ export function CanvasStage({
   gridLines,
   segments,
   currentPoints,
-  selectedSegmentIndex,
+  selectedSegmentIndices,
   hoveredSegmentIndex,
   hoveredPointIndex,
   activeTool,
   scale,
   baseScale,
   current,
+  selectionBox,
   onSegmentDoubleClick,
   handleMouseDown,
   handleMouseMove,
@@ -62,13 +64,14 @@ export function CanvasStage({
           gridLines={gridLines}
           segments={segments}
           currentPoints={currentPoints}
-          selectedSegmentIndex={selectedSegmentIndex}
+          selectedSegmentIndices={selectedSegmentIndices}
           hoveredSegmentIndex={hoveredSegmentIndex}
           hoveredPointIndex={hoveredPointIndex}
           activeTool={activeTool}
           scale={scale}
           baseScale={baseScale}
           current={current}
+          selectionBox={selectionBox}
           onSegmentDoubleClick={onSegmentDoubleClick}
         />
       </Stage>

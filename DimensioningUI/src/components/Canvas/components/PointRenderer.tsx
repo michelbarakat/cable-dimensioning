@@ -23,7 +23,7 @@ type SegmentContext = {
 
 type InteractionState = {
   hoveredPointIndex: HoveredPoint | null;
-  selectedSegmentIndex: number | null;
+  selectedSegmentIndices: number[];
 };
 
 function isPointHovered(
@@ -38,7 +38,7 @@ function isPointSelected(
   interactionState: InteractionState
 ): boolean {
   return (
-    interactionState.selectedSegmentIndex === location.segIndex &&
+    interactionState.selectedSegmentIndices.includes(location.segIndex) &&
     isPointHovered(location, interactionState.hoveredPointIndex)
   );
 }
@@ -75,7 +75,7 @@ type PointCircleProps = {
   segment: CableSegment;
   segments: CableSegment[];
   hoveredPointIndex: HoveredPoint | null;
-  selectedSegmentIndex: number | null;
+  selectedSegmentIndices: number[];
 };
 
 function PointCircle({
@@ -86,11 +86,11 @@ function PointCircle({
   segment,
   segments,
   hoveredPointIndex,
-  selectedSegmentIndex,
+  selectedSegmentIndices,
 }: PointCircleProps) {
   const location: PointLocation = { segIndex, pointIndex };
   const segmentContext: SegmentContext = { segment, segments };
-  const interactionState: InteractionState = { hoveredPointIndex, selectedSegmentIndex };
+  const interactionState: InteractionState = { hoveredPointIndex, selectedSegmentIndices };
   const state = getPointState({ location, segmentContext, interactionState });
   const style = getPointStyle(state);
 
@@ -111,7 +111,7 @@ type SegmentPointsProps = {
   segment: CableSegment;
   scaleFactor: number;
   hoveredPointIndex: HoveredPoint | null;
-  selectedSegmentIndex: number | null;
+  selectedSegmentIndices: number[];
   activeTool: Tool;
 };
 
@@ -121,10 +121,10 @@ export function SegmentPoints({
   segment,
   scaleFactor,
   hoveredPointIndex,
-  selectedSegmentIndex,
+  selectedSegmentIndices,
   activeTool,
 }: SegmentPointsProps) {
-  const isSelected = selectedSegmentIndex === segIndex;
+  const isSelected = selectedSegmentIndices.includes(segIndex);
   
   // Only show points when segment is selected
   if (!isSelected) {
@@ -143,7 +143,7 @@ export function SegmentPoints({
           segment={segment}
           segments={segments}
           hoveredPointIndex={hoveredPointIndex}
-          selectedSegmentIndex={selectedSegmentIndex}
+          selectedSegmentIndices={selectedSegmentIndices}
         />
       ))}
     </>

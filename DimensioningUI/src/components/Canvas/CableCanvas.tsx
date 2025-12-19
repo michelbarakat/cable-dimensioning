@@ -22,6 +22,7 @@ import {
   calculateSegmentLength,
   snapToGridPoint,
   isConnectionPoint,
+  segmentIntersectsRect,
 } from "./utils";
 import { DEFAULTS } from "../../lib/defaults";
 
@@ -45,9 +46,9 @@ const CableCanvas = ({
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [selectedSegmentIndex, setSelectedSegmentIndex] = useState<
-    number | null
-  >(null);
+  const [selectedSegmentIndices, setSelectedSegmentIndices] = useState<number[]>([]);
+  const [selectionBox, setSelectionBox] = useState<{ start: Point; end: Point } | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(
     null
   );
@@ -120,15 +121,11 @@ const CableCanvas = ({
     (segmentIndex: number): void => {
       deleteSegmentInternal(segmentIndex);
       
-      // Clear selection and hover states if the deleted segment was selected/hovered
-      // Also adjust indices for segments that come after the deleted one
-      if (selectedSegmentIndex !== null) {
-        if (selectedSegmentIndex === segmentIndex) {
-          setSelectedSegmentIndex(null);
-        } else if (selectedSegmentIndex > segmentIndex) {
-          setSelectedSegmentIndex(selectedSegmentIndex - 1);
-        }
-      }
+      // Update selected segments array - remove deleted segment and adjust indices
+      setSelectedSegmentIndices((prev) => {
+        const filtered = prev.filter((idx) => idx !== segmentIndex);
+        return filtered.map((idx) => (idx > segmentIndex ? idx - 1 : idx));
+      });
       
       if (hoveredSegmentIndex !== null) {
         if (hoveredSegmentIndex === segmentIndex) {
@@ -149,8 +146,27 @@ const CableCanvas = ({
         });
       }
     },
-    [deleteSegmentInternal, selectedSegmentIndex, hoveredSegmentIndex, popover, setSelectedSegmentIndex, setHoveredSegmentIndex, setPopover]
+    [deleteSegmentInternal, hoveredSegmentIndex, popover, setHoveredSegmentIndex, setPopover]
   );
+
+  const deleteSelectedSegments = useCallback(() => {
+    if (selectedSegmentIndices.length === 0) return;
+    
+    // Delete all selected segments at once by filtering them out
+    const indicesSet = new Set(selectedSegmentIndices);
+    const newSegments = segments.filter((_, index) => !indicesSet.has(index));
+    setSegments(newSegments);
+    saveToHistory(newSegments);
+    
+    // Clear selection and popover
+    setSelectedSegmentIndices([]);
+    setPopover(null);
+    
+    // Clear hover state if needed
+    if (hoveredSegmentIndex !== null && indicesSet.has(hoveredSegmentIndex)) {
+      setHoveredSegmentIndex(null);
+    }
+  }, [selectedSegmentIndices, segments, setSegments, saveToHistory, hoveredSegmentIndex, setHoveredSegmentIndex]);
 
   const handleSegmentDoubleClick = (segmentIndex: number, x: number, y: number) => {
     if (!cableEngine || activeTool === "erase") return;
@@ -192,12 +208,25 @@ const CableCanvas = ({
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Handle keyboard events for space key
+  // Handle keyboard events for space key and delete/backspace
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" && !e.repeat) {
         setIsSpacePressed(true);
         e.preventDefault();
+        return;
+      }
+      
+      // Handle delete/backspace for selected segments
+      const isDelete = e.key === "Delete";
+      const isBackspace = e.key === "Backspace";
+      const isDeleteKey = isDelete || isBackspace;
+      const hasSelectedSegments = selectedSegmentIndices.length > 0;
+      const isSelectTool = activeTool === "select";
+      const shouldDeleteSegments = isDeleteKey && hasSelectedSegments && isSelectTool;
+      if (shouldDeleteSegments) {
+        e.preventDefault();
+        deleteSelectedSegments();
       }
     };
 
@@ -215,7 +244,7 @@ const CableCanvas = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []);
+  }, [selectedSegmentIndices, activeTool, deleteSelectedSegments]);
 
   const { handleMouseDown, dragTimeoutRef } = useMouseHandlers({
     cableEngine,
@@ -229,14 +258,16 @@ const CableCanvas = ({
     getNearestPoint,
     getNearestSegment,
     getNearestSegmentEndpoint,
-    selectedSegmentIndex,
+    selectedSegmentIndices,
     deleteSegment,
     mergeSegments,
     setIsPanning,
     setPanStart,
     setIsDraggingPoint,
     setIsDraggingSegment,
-    setSelectedSegmentIndex,
+    setSelectedSegmentIndices,
+    setIsSelecting,
+    setSelectionBox,
     setHoveredPointIndex,
     setDragStart,
     setIsDrawing,
@@ -261,8 +292,12 @@ const CableCanvas = ({
   };
 
   const handlePointDrag = (stagePoint: Point) => {
-    if (selectedSegmentIndex === null || hoveredPointIndex === null) return;
-      const snappedPoint = snapToGridPoint(stagePoint, scale, snapToGrid);
+    if (selectedSegmentIndices.length === 0 || hoveredPointIndex === null) return;
+    // For point dragging, use the first selected segment (resize only one at a time)
+    const selectedSegmentIndex = selectedSegmentIndices[0];
+    if (hoveredPointIndex.segment !== selectedSegmentIndex) return;
+    
+    const snappedPoint = snapToGridPoint(stagePoint, scale, snapToGrid);
     const newSegments = [...segments];
     const seg = newSegments[selectedSegmentIndex];
     const pointIndex = hoveredPointIndex.point;
@@ -310,7 +345,7 @@ const CableCanvas = ({
   };
 
   const handleSegmentDrag = (stagePoint: Point) => {
-    if (selectedSegmentIndex === null) return;
+    if (selectedSegmentIndices.length === 0) return;
     
     // Snap the current mouse position if snapping is enabled
     const snappedStagePoint = snapToGrid ? snapToGridPoint(stagePoint, scale, snapToGrid) : stagePoint;
@@ -318,21 +353,26 @@ const CableCanvas = ({
     const dx = snappedStagePoint.x - dragStart.x;
     const dy = snappedStagePoint.y - dragStart.y;
     const newSegments = [...segments];
-    const seg = newSegments[selectedSegmentIndex];
-    const newPoints = seg.points.map((p) => {
-      const movedPoint = {
-        x: p.x + dx,
-        y: p.y + dy,
+    
+    // Move all selected segments
+    selectedSegmentIndices.forEach((segmentIndex) => {
+      const seg = newSegments[segmentIndex];
+      const newPoints = seg.points.map((p) => {
+        const movedPoint = {
+          x: p.x + dx,
+          y: p.y + dy,
+        };
+        // Snap to grid if enabled, otherwise move freely
+        return snapToGrid ? snapToGridPoint(movedPoint, scale, snapToGrid) : movedPoint;
+      });
+      const newLength = calculateSegmentLength(newPoints, scale);
+      newSegments[segmentIndex] = {
+        ...seg,
+        points: newPoints,
+        length: newLength,
       };
-      // Snap to grid if enabled, otherwise move freely
-      return snapToGrid ? snapToGridPoint(movedPoint, scale, snapToGrid) : movedPoint;
     });
-    const newLength = calculateSegmentLength(newPoints, scale);
-    newSegments[selectedSegmentIndex] = {
-      ...seg,
-      points: newPoints,
-      length: newLength,
-    };
+    
     setSegments(newSegments);
     // Update dragStart to snapped position to maintain consistent delta calculation
     setDragStart(snappedStagePoint);
@@ -430,6 +470,11 @@ const CableCanvas = ({
       return;
     }
 
+    // Handle selection box dragging
+    if (isSelecting && selectionBox) {
+      setSelectionBox({ ...selectionBox, end: stagePoint });
+      return;
+    }
 
     // Handle erase tool tooltips
     if (activeTool === "erase") {
@@ -459,18 +504,32 @@ const CableCanvas = ({
       dragTimeoutRef.current = null;
     }
 
+    // Handle selection box completion
+    if (isSelecting && selectionBox) {
+      // Find segments within selection box
+      const selectedIndices: number[] = [];
+      segments.forEach((segment, index) => {
+        if (segmentIntersectsRect(segment, selectionBox)) {
+          selectedIndices.push(index);
+        }
+      });
+      setSelectedSegmentIndices(selectedIndices);
+      setSelectionBox(null);
+      setIsSelecting(false);
+    }
+
     if (isDraggingPoint) {
       saveToHistory(segments);
       setIsDraggingPoint(false);
       setHoveredPointIndex(null);
-      // Keep segment selected after dragging
+      // Keep segments selected after dragging
       return true;
     }
 
     if (isDraggingSegment) {
       saveToHistory(segments);
       setIsDraggingSegment(false);
-      // Keep segment selected after dragging
+      // Keep segments selected after dragging
       return true;
     }
 
@@ -521,6 +580,12 @@ const CableCanvas = ({
 
     if (handleDragEnd()) {
       return;
+    }
+
+    // Clear selection box if we were selecting but didn't complete it
+    if (isSelecting) {
+      setIsSelecting(false);
+      setSelectionBox(null);
     }
 
     handleDrawingComplete();
@@ -677,13 +742,14 @@ const CableCanvas = ({
                 gridLines={gridLines}
                 segments={segments}
                 currentPoints={currentPoints}
-                selectedSegmentIndex={selectedSegmentIndex}
+                selectedSegmentIndices={selectedSegmentIndices}
                 hoveredSegmentIndex={hoveredSegmentIndex}
                 hoveredPointIndex={hoveredPointIndex}
                 activeTool={activeTool}
                 scale={scale}
                 baseScale={baseScale}
                 current={current}
+                selectionBox={selectionBox}
                 onSegmentDoubleClick={handleSegmentDoubleClick}
                 handleMouseDown={handleMouseDown}
                 handleMouseMove={handleMouseMove}

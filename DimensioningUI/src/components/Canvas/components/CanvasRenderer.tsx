@@ -1,4 +1,4 @@
-import { Layer, Line, Circle } from "react-konva";
+import { Layer, Line, Circle, Rect } from "react-konva";
 import type { CableSegment, Point, Tool, HoveredPoint } from "../types";
 import { SegmentPoints } from "./PointRenderer";
 import { SegmentLabels } from "./SegmentLabels";
@@ -8,13 +8,14 @@ type CanvasRendererProps = {
   gridLines: Array<{ points: number[]; key: string }>;
   segments: CableSegment[];
   currentPoints: Point[];
-  selectedSegmentIndex: number | null;
+  selectedSegmentIndices: number[];
   hoveredSegmentIndex: number | null;
   hoveredPointIndex: HoveredPoint | null;
   activeTool: Tool;
   scale: number;
   baseScale: number;
   current: string;
+  selectionBox: { start: Point; end: Point } | null;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 };
 
@@ -46,14 +47,14 @@ function SegmentLine({
   segment,
   segIndex,
   scaleFactor,
-  selectedSegmentIndex,
+  selectedSegmentIndices,
   hoveredSegmentIndex,
   onSegmentDoubleClick,
 }: {
   segment: CableSegment;
   segIndex: number;
   scaleFactor: number;
-  selectedSegmentIndex: number | null;
+  selectedSegmentIndices: number[];
   hoveredSegmentIndex: number | null;
   onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
 }) {
@@ -68,9 +69,11 @@ function SegmentLine({
   const thicknessMultiplier = Math.max(1, crossSection / DEFAULTS.CROSS_SECTION);
   const strokeWidth = baseThickness * thicknessMultiplier;
   
+  const isSelected = selectedSegmentIndices.includes(segIndex);
+  
   // Use base color for all states, adjust opacity for hover/selection
   const stroke = baseColor;
-  const opacity = selectedSegmentIndex === segIndex
+  const opacity = isSelected
     ? 1.0
     : hoveredSegmentIndex === segIndex
       ? 1.0
@@ -97,7 +100,7 @@ function SegmentLine({
       key={`segment-${segIndex}`}
       points={segment.points.flatMap((p) => [p.x * scaleFactor, p.y * scaleFactor])}
       stroke={stroke}
-      strokeWidth={selectedSegmentIndex === segIndex ? strokeWidth + 1 : strokeWidth}
+      strokeWidth={isSelected ? strokeWidth + 1 : strokeWidth}
       opacity={opacity}
       lineCap="round"
       lineJoin="round"
@@ -111,13 +114,14 @@ export function CanvasRenderer({
   gridLines,
   segments,
   currentPoints,
-  selectedSegmentIndex,
+  selectedSegmentIndices,
   hoveredSegmentIndex,
   hoveredPointIndex,
   activeTool,
   scale,
   baseScale,
   current,
+  selectionBox,
   onSegmentDoubleClick,
 }: CanvasRendererProps) {
   // Calculate scale factor for rendering
@@ -137,12 +141,25 @@ export function CanvasRenderer({
             segment={segment}
             segIndex={segIndex}
             scaleFactor={scaleFactor}
-            selectedSegmentIndex={selectedSegmentIndex}
+            selectedSegmentIndices={selectedSegmentIndices}
             hoveredSegmentIndex={hoveredSegmentIndex}
             onSegmentDoubleClick={onSegmentDoubleClick}
           />
         );
       })}
+      {selectionBox && (
+        <Rect
+          x={Math.min(selectionBox.start.x, selectionBox.end.x) * scaleFactor}
+          y={Math.min(selectionBox.start.y, selectionBox.end.y) * scaleFactor}
+          width={Math.abs(selectionBox.end.x - selectionBox.start.x) * scaleFactor}
+          height={Math.abs(selectionBox.end.y - selectionBox.start.y) * scaleFactor}
+          stroke="#3b82f6"
+          strokeWidth={1}
+          fill="rgba(59, 130, 246, 0.1)"
+          dash={[5, 5]}
+          listening={false}
+        />
+      )}
       {currentPoints.length > 1 && (
         <Line
           points={currentPoints.flatMap((p) => [p.x * scaleFactor, p.y * scaleFactor])}
@@ -166,7 +183,7 @@ export function CanvasRenderer({
             segment={segment}
             scaleFactor={scaleFactor}
             hoveredPointIndex={hoveredPointIndex}
-            selectedSegmentIndex={selectedSegmentIndex}
+            selectedSegmentIndices={selectedSegmentIndices}
             activeTool={activeTool}
           />
         );

@@ -36,6 +36,99 @@ export const snapToGridPoint = (
   };
 };
 
+// Check if a segment intersects with a rectangle
+export const segmentIntersectsRect = (
+  segment: { points: Point[] },
+  rect: { start: Point; end: Point }
+): boolean => {
+  const minX = Math.min(rect.start.x, rect.end.x);
+  const maxX = Math.max(rect.start.x, rect.end.x);
+  const minY = Math.min(rect.start.y, rect.end.y);
+  const maxY = Math.max(rect.start.y, rect.end.y);
+
+  // Check if any point of the segment is inside the rectangle
+  for (const point of segment.points) {
+    if (point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY) {
+      return true;
+    }
+  }
+
+  // Check if any edge of the segment intersects with the rectangle
+  for (let i = 0; i < segment.points.length - 1; i++) {
+    const p1 = segment.points[i];
+    const p2 = segment.points[i + 1];
+    
+    // Check if line segment intersects rectangle
+    if (lineIntersectsRect(p1, p2, { start: rect.start, end: rect.end })) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+// Check if a line segment intersects with a rectangle
+const lineIntersectsRect = (
+  lineStart: Point,
+  lineEnd: Point,
+  rect: { start: Point; end: Point }
+): boolean => {
+  const minX = Math.min(rect.start.x, rect.end.x);
+  const maxX = Math.max(rect.start.x, rect.end.x);
+  const minY = Math.min(rect.start.y, rect.end.y);
+  const maxY = Math.max(rect.start.y, rect.end.y);
+
+  // Check if line is completely outside rectangle
+  if (
+    (lineStart.x < minX && lineEnd.x < minX) ||
+    (lineStart.x > maxX && lineEnd.x > maxX) ||
+    (lineStart.y < minY && lineEnd.y < minY) ||
+    (lineStart.y > maxY && lineEnd.y > maxY)
+  ) {
+    return false;
+  }
+
+  // Check if line endpoints are inside rectangle
+  if (
+    (lineStart.x >= minX && lineStart.x <= maxX && lineStart.y >= minY && lineStart.y <= maxY) ||
+    (lineEnd.x >= minX && lineEnd.x <= maxX && lineEnd.y >= minY && lineEnd.y <= maxY)
+  ) {
+    return true;
+  }
+
+  // Check intersection with rectangle edges
+  const edges = [
+    { start: { x: minX, y: minY }, end: { x: maxX, y: minY } },
+    { start: { x: maxX, y: minY }, end: { x: maxX, y: maxY } },
+    { start: { x: maxX, y: maxY }, end: { x: minX, y: maxY } },
+    { start: { x: minX, y: maxY }, end: { x: minX, y: minY } },
+  ];
+
+  for (const edge of edges) {
+    if (linesIntersect(lineStart, lineEnd, edge.start, edge.end)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+// Check if two line segments intersect
+const linesIntersect = (
+  p1: Point,
+  p2: Point,
+  p3: Point,
+  p4: Point
+): boolean => {
+  const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+  if (denom === 0) return false; // Lines are parallel
+
+  const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
+  const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
+
+  return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
+};
+
 // Check if point is near a line segment
 export const getPointOnLineDistance = (
   point: Point,
