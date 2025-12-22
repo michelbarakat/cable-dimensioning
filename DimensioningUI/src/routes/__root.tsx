@@ -1,6 +1,7 @@
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { loadCableDimensioning, type CableEngine } from "../lib/cable_dimensioning";
 import { useEffect, useState, createContext, useContext } from "react";
+import { Typography } from "@core/ui-headless";
 
 // Create a React Context for cableEngine
 const CableEngineContext = createContext<CableEngine | null>(null);
@@ -28,58 +29,59 @@ function RootComponent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-master-bg text-text-primary dark scrollbar">
       <div className="p-4 w-full max-w-6xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-4xl text-center mb-6 font-bold bg-linear-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        <header className="mb-4">
+          <Typography level="h1" className="text-center mb-2">
             CABLE DIMENSIONING - WEB ASSEMBLY
-          </h1>
-          <nav className="flex flex-wrap justify-center gap-2 bg-gray-800 rounded-lg p-2 border border-gray-700">
+          </Typography>
+          <nav className="flex flex-wrap justify-center gap-2 bg-surface rounded-sm p-1 border border-section-border">
+
             <Link
               to="/"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Home
             </Link>
             <Link
               to="/resistivity"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Resistivity
             </Link>
             <Link
               to="/voltage-drop"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Voltage Drop
             </Link>
             <Link
               to="/cross-section"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Cross Section
             </Link>
             <Link
               to="/power-loss"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Power Loss
             </Link>
             <Link
               to="/derating"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Derating
             </Link>
             <Link
               to="/standard-sizes"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Standard Sizes
             </Link>
             <Link
               to="/canvas"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
+              className="p-1 rounded-sm hover:bg-gray-700 transition-colors [&.active]:bg-blue-600 [&.active]:text-white text-gray-300"
             >
               Canvas
             </Link>

@@ -167,10 +167,8 @@ export const createDrawingStarter = (
 };
 
 type DoubleClickHandlerConfig = {
-  segments: CableSegment[];
-  stagePosition: { x: number; y: number };
   lastClickRef: React.MutableRefObject<{ time: number; point: HoveredPoint | null }>;
-  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number) => void;
   clearDragTimeout: () => void;
 };
 
@@ -221,16 +219,14 @@ export const createSelectToolHandler = (config: SelectToolHandlerConfig) =>
 
 type ProcessDoubleClickConfig = {
   segmentIndex: number | null;
-  segments: CableSegment[];
-  stagePosition: { x: number; y: number };
   lastClickRef: { current: { time: number; point: HoveredPoint | null } };
-  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number) => void;
   clearDragTimeout: () => void;
 };
 
 // Helper to handle double-click check and execution
 export const processDoubleClick = (config: ProcessDoubleClickConfig): boolean => {
-  const { segmentIndex, segments, stagePosition, lastClickRef, onSegmentDoubleClick, clearDragTimeout } = config;
+  const { segmentIndex, lastClickRef, onSegmentDoubleClick, clearDragTimeout } = config;
   if (segmentIndex === null) return false;
   const now = Date.now();
   const lastClick = lastClickRef.current;
@@ -238,9 +234,7 @@ export const processDoubleClick = (config: ProcessDoubleClickConfig): boolean =>
   if (clicked) {
     clearDragTimeout();
     lastClickRef.current = { time: 0, point: null };
-    const segment = segments[segmentIndex];
-    const midPoint = calculateSegmentMidpoint(segment);
-    onSegmentDoubleClick(segmentIndex, midPoint.x + stagePosition.x, midPoint.y + stagePosition.y);
+    onSegmentDoubleClick(segmentIndex);
     return true;
   }
   lastClickRef.current = { time: now, point: { segment: segmentIndex, point: 0 } };

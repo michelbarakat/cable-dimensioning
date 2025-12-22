@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Typography } from "@core/ui-headless";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -6,14 +7,14 @@ export const Route = createFileRoute("/")({
 
 function AboutSection() {
   return (
-    <section className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-      <h2 className="text-3xl font-bold mb-4 text-white">About This Project</h2>
-      <p className="text-gray-300 leading-relaxed text-lg">
+    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
+      <Typography level="h2">About This Project</Typography>
+      <Typography level="p">
         This is a web-based cable dimensioning tool built with WebAssembly for high-performance
         electrical engineering calculations. The core calculation engine is written in C and
         compiled to WebAssembly using Emscripten. All WASM computations run in a <strong className="text-blue-400">Web Worker</strong>,
         ensuring fast, non-blocking computations that keep the UI fully responsive even during heavy calculations.
-      </p>
+      </Typography>
     </section>
   );
 }
@@ -71,7 +72,7 @@ function FeatureItem({ icon, title, description }: Feature) {
 
 function FeaturesSection() {
   return (
-    <section className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
+    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
       <h2 className="text-3xl font-bold mb-6 text-white">Features</h2>
       <ul className="space-y-4">
         {features.map((feature) => (
@@ -108,7 +109,7 @@ const techStack: TechStackItem[] = [
 
 function TechnologyStackSection() {
   return (
-    <section className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
+    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
       <h2 className="text-3xl font-bold mb-6 text-white">Technology Stack</h2>
       <div className="grid md:grid-cols-3 gap-4">
         {techStack.map((item) => (
@@ -124,7 +125,7 @@ function TechnologyStackSection() {
 
 function GetStartedSection() {
   return (
-    <section className="bg-linear-to-r from-blue-900 to-purple-900 rounded-lg p-6 shadow-lg border border-blue-700">
+    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
       <h2 className="text-3xl font-bold mb-4 text-white">Get Started</h2>
       <p className="text-gray-200 leading-relaxed text-lg mb-6">
         Use the navigation menu above to access the different calculation tools. All calculations
@@ -152,7 +153,7 @@ function GetStartedSection() {
 
 function Home() {
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="flex flex-col gap-2">
       <AboutSection />
       <FeaturesSection />
       <TechnologyStackSection />

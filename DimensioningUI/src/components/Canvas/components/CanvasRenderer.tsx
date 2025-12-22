@@ -16,7 +16,7 @@ type CanvasRendererProps = {
   baseScale: number;
   current: string;
   selectionBox: { start: Point; end: Point } | null;
-  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number) => void;
 };
 
 function GridLines({ gridLines }: { gridLines: Array<{ points: number[]; key: string }> }) {
@@ -56,7 +56,7 @@ function SegmentLine({
   scaleFactor: number;
   selectedSegmentIndices: number[];
   hoveredSegmentIndex: number | null;
-  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number) => void;
 }) {
   const isCopper = segment.isCopper ?? DEFAULTS.IS_COPPER;
   const crossSection = segment.crossSection ?? DEFAULTS.CROSS_SECTION;
@@ -85,7 +85,7 @@ function SegmentLine({
     if (stage) {
       const pos = stage.getPointerPosition();
       if (pos) {
-        onSegmentDoubleClick(segIndex, pos.x, pos.y);
+        onSegmentDoubleClick(segIndex);
       }
     }
   };

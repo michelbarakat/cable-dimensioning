@@ -16,7 +16,7 @@ type CanvasStageProps = {
   baseScale: number;
   current: string;
   selectionBox: { start: Point; end: Point } | null;
-  onSegmentDoubleClick: (segmentIndex: number, x: number, y: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number) => void;
   handleMouseDown: (e: any) => void;
   handleMouseMove: (e: any) => void;
   handleMouseUp: () => void;

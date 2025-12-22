@@ -1,11 +1,13 @@
 import { isValidNumberInput, parseNumber } from "../../../lib/numberInput";
 import { RANGES } from "../../../lib/ranges";
+import { FormControl, Input, Checkbox, MetricCard } from "@core/ui-headless";
 
 type InputFieldsProps = {
   current: string;
   isThreePhase: boolean;
   setCurrent: (value: string) => void;
   setIsThreePhase: (value: boolean) => void;
+  result: number | null;
 };
 
 const INTERMEDIATE_VALUES = ["", ".", ",", "-"];
@@ -50,6 +52,7 @@ export function InputFields({
   isThreePhase,
   setCurrent,
   setIsThreePhase,
+  result,
 }: InputFieldsProps) {
   const handleCurrentChange = createNumberInputHandler(
     setCurrent,
@@ -58,36 +61,41 @@ export function InputFields({
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
       <div className="flex flex-col gap-2">
-        <label htmlFor="canvas-current" className="text-gray-300 font-medium">
-          Current (A) [{RANGES.CURRENT.MIN} - {RANGES.CURRENT.MAX}]
-        </label>
-        <input
-          id="canvas-current"
-          name="canvas-current"
-          type="text"
-          inputMode="decimal"
-          value={current}
-          onChange={handleCurrentChange}
-          className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
-        />
+        <FormControl label={`Current (A) [${RANGES.CURRENT.MIN} - ${RANGES.CURRENT.MAX}]`}>
+          <Input
+            id="canvas-current"
+            name="canvas-current"
+            type="text"
+            inputMode="decimal"
+            value={current}
+            onChange={handleCurrentChange}
+          />
+        </FormControl>
+
+        <FormControl>
+          <Checkbox
+            id="three-phase-toggle"
+            checked={isThreePhase}
+            onCheckedChange={() => setIsThreePhase(!isThreePhase)}
+            label="Three Phase"
+          />
+        </FormControl>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="three-phase-toggle"
-          checked={isThreePhase}
-          onChange={(e) => setIsThreePhase(e.target.checked)}
-          className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+      <div className="flex items-start">
+        <MetricCard
+          className="w-full"
+          label=""
+          value={
+            result !== null && result >= 0 && !isNaN(result)
+              ? result.toFixed(6)
+              : "—"
+          }
+          unit="Volts"
+          badgeTitle="Total Voltage Drop"
         />
-        <label
-          htmlFor="three-phase-toggle"
-          className="text-gray-300 font-medium cursor-pointer"
-        >
-          Three Phase
-        </label>
       </div>
     </div>
   );

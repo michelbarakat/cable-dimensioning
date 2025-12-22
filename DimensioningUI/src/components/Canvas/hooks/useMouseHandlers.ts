@@ -47,7 +47,7 @@ export function useMouseHandlers({
     }
   }, []);
 
-  const checkAndHandleDoubleClick = useMemo(() => createDoubleClickHandler({ segments, stagePosition, lastClickRef, onSegmentDoubleClick, clearDragTimeout }), [segments, stagePosition, onSegmentDoubleClick, clearDragTimeout]);
+  const checkAndHandleDoubleClick = useMemo(() => createDoubleClickHandler({ lastClickRef, onSegmentDoubleClick, clearDragTimeout }), [onSegmentDoubleClick, clearDragTimeout]);
   const handleEraseTool = useMemo(() => createEraseToolHandler({ segments, getNearestPoint, getNearestSegment, mergeSegments, deleteSegment }), [getNearestPoint, getNearestSegment, segments, mergeSegments, deleteSegment]);
 
   const dragHandlers = useMemo(() => createDragHandlers(setIsDraggingPoint, setHoveredPointIndex, setDragStart, setIsDraggingSegment), [setIsDraggingPoint, setHoveredPointIndex, setDragStart, setIsDraggingSegment]);
@@ -72,8 +72,11 @@ export function useMouseHandlers({
   const handleSelectTool = useMemo(() => createSelectToolHandler({ selectedSegmentIndices, getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, checkAndHandleDoubleClick, setSelectedSegmentIndices, setIsSelecting, setSelectionBox, setDragStart }), [selectedSegmentIndices, getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, checkAndHandleDoubleClick, setSelectedSegmentIndices, setIsSelecting, setSelectionBox, setDragStart]);
 
   const executeToolAction = useCallback((stagePoint: Point) => {
-    if (popover?.visible) setPopover(null);
     const handlers = createToolHandlers({ erase: handleEraseTool, line: handleLineTool, select: handleSelectTool });
+    // Close popover if visible, but still execute the tool action
+    if (popover?.visible) {
+      setPopover(null);
+    }
     handlers[activeTool]?.(stagePoint);
   }, [popover, setPopover, activeTool, handleEraseTool, handleLineTool, handleSelectTool]);
 

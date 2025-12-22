@@ -15,7 +15,7 @@ lerna-debug.log*
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
-.yarnrc.yml
+!.yarnrc.yml
 yarn-error.log
 
 # Dependency directories

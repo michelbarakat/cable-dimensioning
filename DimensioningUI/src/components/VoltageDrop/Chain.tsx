@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
 import { isValidNumberInput, parseNumber } from "../../lib/numberInput";
+import {
+  Button,
+  Checkbox,
+  FormControl,
+  IconButton,
+  Input,
+  List,
+  MetricCard,
+  Section,
+} from "@core/ui-headless";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Add01Icon, Remove01Icon } from "@hugeicons-pro/core-stroke-rounded";
 
 type Segment = {
   length: number;
@@ -23,38 +35,35 @@ function SegmentInput({
   onRemove,
 }: SegmentInputProps) {
   return (
-    <div className="flex gap-3 mb-3 items-end bg-gray-900 border border-gray-700 p-4 rounded-lg">
-      <div className="flex flex-col flex-1 gap-2">
-        <label htmlFor={`chain-segment-${index}-length`} className="text-gray-300 font-medium text-sm">Length in meters</label>
-        <input
-          id={`chain-segment-${index}-length`}
-          name={`chain-segment-${index}-length`}
-          className="bg-gray-800 border-2 border-gray-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none transition-colors"
-          type="text"
-          inputMode="decimal"
-          value={segment.length.toString()}
-          onChange={(e) => onChange(index, "length", e.target.value)}
-        />
-      </div>
-      <div className="flex flex-col flex-1 gap-2">
-        <label htmlFor={`chain-segment-${index}-section`} className="text-gray-300 font-medium text-sm">Cross Section in mm²</label>
-        <input
-          id={`chain-segment-${index}-section`}
-          name={`chain-segment-${index}-section`}
-          className="bg-gray-800 border-2 border-gray-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none transition-colors"
-          type="text"
-          inputMode="decimal"
-          value={segment.section.toString()}
-          onChange={(e) => onChange(index, "section", e.target.value)}
-        />
-      </div>
+    <div className="flex gap-2  items-end bg-surface border border-section-border p-2 rounded-sm">
+      <Input
+        id={`chain-segment-${index}-length`}
+        name={`chain-segment-${index}-length`}
+        type="text"
+        inputMode="decimal"
+        value={segment.length.toString()}
+        onChange={(e) => onChange(index, "length", e.target.value)}
+        endDecorator={<span className="text-gray-500 text-xs">m</span>}
+        className="flex-1"
+      />
+      <Input
+        id={`chain-segment-${index}-section`}
+        name={`chain-segment-${index}-section`}
+        type="text"
+        inputMode="decimal"
+        value={segment.section.toString()}
+        onChange={(e) => onChange(index, "section", e.target.value)}
+        endDecorator={<span className="text-gray-500 text-xs">mm²</span>}
+        className="flex-1"
+      />
+
       {canRemove && (
-        <button
-          className="text-red-400 hover:text-red-300 font-bold text-xl pb-2 transition-colors"
+        <IconButton
+          variant="soft"
+          color="danger"
           onClick={() => onRemove(index)}
-        >
-          ✕
-        </button>
+          icon={<HugeiconsIcon icon={Remove01Icon} />}
+        />
       )}
     </div>
   );
@@ -74,15 +83,10 @@ function SegmentsList({
   onRemove,
 }: SegmentsListProps) {
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-between items-center p-2">
         <span className="font-semibold text-white text-lg">Segments</span>
-        <button
-          className="bg-green-600 hover:bg-green-500 active:bg-green-700 text-white rounded-lg px-4 py-2 font-semibold transition-colors shadow-lg hover:shadow-xl"
-          onClick={onAdd}
-        >
-          + Add Segment
-        </button>
+        <IconButton icon={<HugeiconsIcon icon={Add01Icon} />} onClick={onAdd} color="primary" variant="soft" />
       </div>
       {segments.map((seg, index) => (
         <SegmentInput
@@ -106,47 +110,6 @@ const SAMPLE_DATA = {
     { length: 15, section: 4 },
   ],
 };
-
-type ResultBoxProps = {
-  result: number | null;
-};
-
-function ResultBox({ result }: ResultBoxProps) {
-  const getBoxClasses = () => {
-    if (result === null) return "bg-gray-900/50 border-gray-700";
-    if (result >= 0) return "bg-gray-900 border-gray-700";
-    return "bg-red-900/30 border-red-700";
-  };
-
-  const renderContent = () => {
-    if (result === null) {
-      return (
-        <p className="text-gray-500 text-sm">
-          <strong className="text-gray-400">Result: </strong>—
-        </p>
-      );
-    }
-    if (result >= 0) {
-      return (
-        <p className="text-white">
-          <strong className="text-blue-400">Result: </strong>
-          <span className="text-xl font-semibold">{result.toFixed(6)} Volts</span>
-        </p>
-      );
-    }
-    return (
-      <p className="text-red-300">
-        <strong>Error: </strong>Invalid input
-      </p>
-    );
-  };
-
-  return (
-    <div className={`h-[56px] flex items-center p-3 rounded-lg border whitespace-nowrap ${getBoxClasses()}`}>
-      {renderContent()}
-    </div>
-  );
-}
 
 type FormFieldsProps = {
   current: string;
@@ -176,17 +139,14 @@ function FormFields({
   onCalculate,
 }: FormFieldsProps) {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="chain-current" className="text-gray-300 font-medium">
-            Current in A
-          </label>
-          <input
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <FormControl label="Current in A">
+          <Input
+            id="chain-current"
+            name="chain-current"
             type="text"
             inputMode="decimal"
-            id="chain-current"
             value={current}
             onChange={(e) => {
               const value = e.target.value;
@@ -195,16 +155,13 @@ function FormFields({
               }
             }}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="chain-resistivity" className="text-gray-300 font-medium">
-            Resistivity in ohm·mm²/m
-          </label>
-          <input
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+        </FormControl>
+        <FormControl label="Resistivity in ohm·mm²/m">
+          <Input
+            id="chain-resistivity"
+            name="chain-resistivity"
             type="text"
             inputMode="decimal"
-            id="chain-resistivity"
             value={resistivity}
             onChange={(e) => {
               const value = e.target.value;
@@ -213,22 +170,15 @@ function FormFields({
               }
             }}
           />
-        </div>
-        <div className="flex items-center gap-2 bg-gray-900 border-2 border-gray-700 rounded-lg p-3">
-          <input
-            type="checkbox"
+        </FormControl>
+        <FormControl>
+          <Checkbox
             id="chain-three-phase"
             checked={isThreePhase}
-            onChange={(e) => onIsThreePhaseChange(e.target.checked)}
-            className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+            onCheckedChange={() => onIsThreePhaseChange(!isThreePhase)}
+            label="Three Phase"
           />
-          <label
-            htmlFor="chain-three-phase"
-            className="text-gray-300 font-medium cursor-pointer"
-          >
-            Three Phase
-          </label>
-        </div>
+        </FormControl>
       </div>
       <SegmentsList
         segments={segments}
@@ -236,12 +186,14 @@ function FormFields({
         onChange={onChangeSegment}
         onRemove={onRemoveSegment}
       />
-      <button
-        className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-lg h-12 text-white font-semibold transition-colors shadow-lg hover:shadow-xl w-full"
+      <Button
+        className="w-full"
+        variant="solid"
+        color="primary"
         onClick={onCalculate}
       >
         Calculate
-      </button>
+      </Button>
     </div>
   );
 }
@@ -252,41 +204,45 @@ type SampleDataBoxProps = {
 
 function SampleDataBox({ onApply }: SampleDataBoxProps) {
   return (
-    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 shadow-lg min-w-[180px]">
-      <div className="text-xs text-gray-400 mb-2 font-semibold">Sample Data</div>
-      <table className="text-xs text-gray-300 mb-2 whitespace-nowrap">
-        <tbody>
-          <tr>
-            <td className="pr-2">Current:</td>
-            <td className="font-mono">{SAMPLE_DATA.current} A</td>
-          </tr>
-          <tr>
-            <td className="pr-2">Resistivity:</td>
-            <td className="font-mono">{SAMPLE_DATA.resistivity}</td>
-          </tr>
-          <tr>
-            <td className="pr-2 align-top">Segments:</td>
-            <td className="font-mono">
-              {SAMPLE_DATA.segments.map((s, i) => (
-                <div key={i} className="whitespace-nowrap">
-                  {s.length}m / {s.section}mm²
-                </div>
-              ))}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <button
+    <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
+      <List
+        headerText="Sample Data"
+        options={[
+          {
+            variant: "text",
+            label: "Current",
+            value: `${SAMPLE_DATA.current} A`,
+          },
+          {
+            variant: "text",
+            label: "Resistivity",
+            value: SAMPLE_DATA.resistivity,
+          },
+          ...SAMPLE_DATA.segments.map((s, index) => ({
+            variant: "text" as const,
+            label: index === 0 ? "Segments" : "",
+            value: `${s.length}m / ${s.section}mm²`,
+          })),
+        ]}
+      />
+      <Button
+        className="w-full"
+        variant="soft"
+        color="primary"
+        size="sm"
         onClick={onApply}
-        className="w-full text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition-colors cursor-pointer"
       >
         Apply
-      </button>
+      </Button>
     </div>
   );
 }
 
-const Chain = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => {
+const Chain = ({
+  cableEngine = null,
+}: {
+  cableEngine?: CableEngine | null;
+}) => {
   const [current, setCurrent] = useState<string>("");
   const [resistivity, setResistivity] = useState<string>("");
   const [isThreePhase, setIsThreePhase] = useState<boolean>(false);
@@ -362,28 +318,33 @@ const Chain = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => 
   };
 
   return (
-    <div className="flex gap-4 items-start">
-      <div className="flex-1 min-w-[750px] bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-        <div className="flex items-center gap-4 mb-6">
-          <h3 className="text-2xl font-bold flex-1 text-white">Voltage Drop Chain</h3>
-          <ResultBox result={result} />
+    <Section title="Voltage Drop Chain">
+      <div className="flex gap-2 items-start p-2">
+        <div className="flex flex-col gap-3 flex-1">
+          <FormFields
+            current={current}
+            resistivity={resistivity}
+            segments={segments}
+            isThreePhase={isThreePhase}
+            onCurrentChange={setCurrent}
+            onResistivityChange={setResistivity}
+            onIsThreePhaseChange={setIsThreePhase}
+            onAddSegment={handleAddSegment}
+            onChangeSegment={handleChangeSegment}
+            onRemoveSegment={handleRemoveSegment}
+            onCalculate={handleCalculate}
+          />
+          <MetricCard
+            className="w-37.5"
+            label=""
+            value={result !== null && result >= 0 ? result.toFixed(6) : "—"}
+            unit="Volts"
+            badgeTitle="Voltage Drop"
+          />
         </div>
-        <FormFields
-          current={current}
-          resistivity={resistivity}
-          segments={segments}
-          isThreePhase={isThreePhase}
-          onCurrentChange={setCurrent}
-          onResistivityChange={setResistivity}
-          onIsThreePhaseChange={setIsThreePhase}
-          onAddSegment={handleAddSegment}
-          onChangeSegment={handleChangeSegment}
-          onRemoveSegment={handleRemoveSegment}
-          onCalculate={handleCalculate}
-        />
+        <SampleDataBox onApply={handleApplySample} />
       </div>
-      <SampleDataBox onApply={handleApplySample} />
-    </div>
+    </Section>
   );
 };
 

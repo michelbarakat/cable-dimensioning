@@ -2,9 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
 import type { CableSegment, Point, Tool, HoveredPoint, TemperaturePreset } from "./types";
 import { MIN_SCALE, MAX_SCALE } from "./constants";
-import { ResultBox } from "./ResultBox";
 import { InputFields } from "./components/InputFields";
-import { CanvasControls } from "./components/CanvasControls";
 import { Toolbar } from "./components/Toolbar";
 import { CanvasStage } from "./components/CanvasStage";
 import { Tooltip } from "./components/Tooltip";
@@ -12,6 +10,7 @@ import { SegmentPropertiesPopover } from "./components/SegmentPropertiesPopover"
 import { ToolInstructions } from "./components/ToolInstructions";
 import { CanvasStats } from "./components/CanvasStats";
 import { LoadingWarning } from "./components/LoadingWarning";
+import { Section } from "@core/ui-headless";
 import { useVoltageDrop } from "./hooks/useVoltageDrop";
 import { useGrid } from "./hooks/useGrid";
 import { useCursor } from "./hooks/useCursor";
@@ -75,6 +74,8 @@ const CableCanvas = ({
   } | null>(null);
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const doubleClickRef = useRef<boolean>(false);
+  const doubleClickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use hooks
   const result = useVoltageDrop({
@@ -168,13 +169,32 @@ const CableCanvas = ({
     }
   }, [selectedSegmentIndices, segments, setSegments, saveToHistory, hoveredSegmentIndex, setHoveredSegmentIndex]);
 
-  const handleSegmentDoubleClick = (segmentIndex: number, x: number, y: number) => {
+  const handleSegmentDoubleClick = (segmentIndex: number) => {
     if (!cableEngine || activeTool === "erase") return;
     const segment = segments[segmentIndex];
+    
+    // Mark that a double-click just happened to prevent click handler from closing popover
+    if (doubleClickTimeoutRef.current) {
+      clearTimeout(doubleClickTimeoutRef.current);
+    }
+    doubleClickRef.current = true;
+    doubleClickTimeoutRef.current = setTimeout(() => {
+      doubleClickRef.current = false;
+      doubleClickTimeoutRef.current = null;
+    }, 300);
+    
+    // Calculate center position relative to the canvas container
+    let centerX = 0;
+    let centerY = 0;
+    if (containerRef.current) {
+      centerX = containerRef.current.clientWidth / 2;
+      centerY = containerRef.current.clientHeight / 2;
+    }
+    
     setPopover({
       visible: true,
-      x,
-      y,
+      x: centerX,
+      y: centerY,
       segmentIndex,
       crossSection: (segment.crossSection ?? DEFAULTS.CROSS_SECTION).toString(),
       isCopper: segment.isCopper ?? DEFAULTS.IS_COPPER,
@@ -182,7 +202,13 @@ const CableCanvas = ({
     });
   };
 
-  const handleUpdateSegment = (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => {
+  const handleUpdateSegment = useCallback((segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => {
+    // Validate segment index exists before updating
+    if (segmentIndex < 0 || segmentIndex >= segments.length) {
+      console.warn(`Cannot update segment at index ${segmentIndex}: segment does not exist`);
+      return;
+    }
+    
     const newSegments = [...segments];
     newSegments[segmentIndex] = {
       ...newSegments[segmentIndex],
@@ -192,7 +218,7 @@ const CableCanvas = ({
     };
     setSegments(newSegments);
     saveToHistory(newSegments);
-  };
+  }, [segments, setSegments, saveToHistory]);
 
   // Update stage size based on container width
   useEffect(() => {
@@ -211,19 +237,30 @@ const CableCanvas = ({
   // Handle keyboard events for space key and delete/backspace
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle keys if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return;
+      }
+      
+      // Don't handle keys if popover is open (let it handle ESC)
+      if (popover?.visible && e.key !== "Escape") {
+        return;
+      }
+      
       if (e.code === "Space" && !e.repeat) {
         setIsSpacePressed(true);
         e.preventDefault();
         return;
       }
       
-      // Handle delete/backspace for selected segments
+      // Handle delete/backspace/enter for selected segments
       const isDelete = e.key === "Delete";
       const isBackspace = e.key === "Backspace";
-      const isDeleteKey = isDelete || isBackspace;
+      const isEnter = e.key === "Enter" || e.key === "Return";
+      const isDeleteKey = isDelete || isBackspace || isEnter;
       const hasSelectedSegments = selectedSegmentIndices.length > 0;
-      const isSelectTool = activeTool === "select";
-      const shouldDeleteSegments = isDeleteKey && hasSelectedSegments && isSelectTool;
+      const shouldDeleteSegments = isDeleteKey && hasSelectedSegments;
       if (shouldDeleteSegments) {
         e.preventDefault();
         deleteSelectedSegments();
@@ -244,7 +281,7 @@ const CableCanvas = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [selectedSegmentIndices, activeTool, deleteSelectedSegments]);
+  }, [selectedSegmentIndices, activeTool, deleteSelectedSegments, popover]);
 
   const { handleMouseDown, dragTimeoutRef } = useMouseHandlers({
     cableEngine,
@@ -276,11 +313,14 @@ const CableCanvas = ({
     onSegmentDoubleClick: handleSegmentDoubleClick,
   });
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (dragTimeoutRef?.current) {
         clearTimeout(dragTimeoutRef.current);
+      }
+      if (doubleClickTimeoutRef.current) {
+        clearTimeout(doubleClickTimeoutRef.current);
       }
     };
   }, [dragTimeoutRef]);
@@ -697,84 +737,87 @@ const CableCanvas = ({
 
 
   return (
-    <div className="w-full">
-      <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-        <div className="flex items-center gap-4 mb-6">
-          <h2 className="text-3xl font-bold flex-1 text-white">
-            Cable Simulation Canvas
-          </h2>
-          <ResultBox result={result} />
-        </div>
-
+    <Section title="Cable Simulation Canvas">
+      <div className="flex flex-col gap-3 p-2">
         <LoadingWarning cableEngine={cableEngine} />
 
-        <div className="flex flex-col gap-6">
-          <InputFields
-            current={current}
-            isThreePhase={isThreePhase}
-            setCurrent={setCurrent}
-            setIsThreePhase={setIsThreePhase}
-          />
+        <InputFields
+          current={current}
+          isThreePhase={isThreePhase}
+          setCurrent={setCurrent}
+          setIsThreePhase={setIsThreePhase}
+          result={result}
+        />
 
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-            <CanvasControls
-              showGrid={showGrid}
-              snapToGrid={snapToGrid}
-              historyIndex={historyIndex}
-              historyLength={history.length}
-              setShowGrid={setShowGrid}
-              setSnapToGrid={setSnapToGrid}
-              handleUndo={handleUndo}
-              handleRedo={handleRedo}
-              handleClear={handleClear}
-            />
-            <Toolbar 
-              activeTool={activeTool} 
-              setActiveTool={setActiveTool}
+        <div className="bg-surface rounded-sm p-4 border border-section-border">
+          <Toolbar 
+            activeTool={activeTool} 
+            setActiveTool={setActiveTool}
+            scale={scale}
+            onScaleIncrement={handleScaleIncrement}
+            onScaleDecrement={handleScaleDecrement}
+            setScale={setScale}
+            showGrid={showGrid}
+            snapToGrid={snapToGrid}
+            historyIndex={historyIndex}
+            historyLength={history.length}
+            setShowGrid={setShowGrid}
+            setSnapToGrid={setSnapToGrid}
+            handleUndo={handleUndo}
+            handleRedo={handleRedo}
+            handleClear={handleClear}
+          />
+          <div 
+            ref={containerRef} 
+            className="relative overflow-visible" 
+            style={{ position: 'relative' }}
+            onClick={(e) => {
+              // Close popover when clicking outside of it
+              // But don't close if it's a double-click (handled separately)
+              if (popover?.visible && !doubleClickRef.current && !(e.target as HTMLElement).closest('[data-popover]')) {
+                setPopover(null);
+              }
+            }}
+          >
+            <CanvasStage
+              stageSize={stageSize}
+              stagePosition={stagePosition}
+              gridLines={gridLines}
+              segments={segments}
+              currentPoints={currentPoints}
+              selectedSegmentIndices={selectedSegmentIndices}
+              hoveredSegmentIndex={hoveredSegmentIndex}
+              hoveredPointIndex={hoveredPointIndex}
+              activeTool={activeTool}
               scale={scale}
-              onScaleIncrement={handleScaleIncrement}
-              onScaleDecrement={handleScaleDecrement}
+              baseScale={baseScale}
+              current={current}
+              selectionBox={selectionBox}
+              onSegmentDoubleClick={handleSegmentDoubleClick}
+              handleMouseDown={handleMouseDown}
+              handleMouseMove={handleMouseMove}
+              handleMouseUp={handleMouseUp}
+              stageRef={stageRef}
+              cursor={cursor}
             />
-            <div ref={containerRef} className="relative">
-              <CanvasStage
-                stageSize={stageSize}
-                stagePosition={stagePosition}
-                gridLines={gridLines}
-                segments={segments}
-                currentPoints={currentPoints}
-                selectedSegmentIndices={selectedSegmentIndices}
-                hoveredSegmentIndex={hoveredSegmentIndex}
-                hoveredPointIndex={hoveredPointIndex}
-                activeTool={activeTool}
-                scale={scale}
-                baseScale={baseScale}
-                current={current}
-                selectionBox={selectionBox}
-                onSegmentDoubleClick={handleSegmentDoubleClick}
-                handleMouseDown={handleMouseDown}
-                handleMouseMove={handleMouseMove}
-                handleMouseUp={handleMouseUp}
-                stageRef={stageRef}
-                cursor={cursor}
-              />
-              <Tooltip tooltip={tooltip} />
-              <SegmentPropertiesPopover
-                popover={popover}
-                setPopover={setPopover}
-                onUpdateSegment={handleUpdateSegment}
-                cableEngine={cableEngine}
-                current={current}
-              />
-            </div>
-            <ToolInstructions activeTool={activeTool} />
-            <CanvasStats
-              totalSegments={totalSegments}
-              totalLength={totalLength}
+            <Tooltip tooltip={tooltip} />
+            <SegmentPropertiesPopover
+              popover={popover}
+              setPopover={setPopover}
+              onUpdateSegment={handleUpdateSegment}
+              cableEngine={cableEngine}
+              current={current}
+              segmentsCount={segments.length}
             />
           </div>
+          <ToolInstructions activeTool={activeTool} />
+          <CanvasStats
+            totalSegments={totalSegments}
+            totalLength={totalLength}
+          />
         </div>
       </div>
-    </div>
+    </Section>
   );
 };
 

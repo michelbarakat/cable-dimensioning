@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
 import { isValidNumberInput, parseNumber } from "../../lib/numberInput";
+import {
+  Button,
+  FormControl,
+  Input,
+  List,
+  MetricCard,
+  Section,
+} from "@core/ui-headless";
 
 const SAMPLE_DATA = {
   current: "16",
@@ -8,47 +16,6 @@ const SAMPLE_DATA = {
   resistivity: "0.0175",
   crossSection: "2.5",
 };
-
-type ResultBoxProps = {
-  result: number | null;
-};
-
-function ResultBox({ result }: ResultBoxProps) {
-  const getBoxClasses = () => {
-    if (result === null) return "bg-gray-900/50 border-gray-700";
-    if (result >= 0) return "bg-gray-900 border-gray-700";
-    return "bg-red-900/30 border-red-700";
-  };
-
-  const renderContent = () => {
-    if (result === null) {
-      return (
-        <p className="text-gray-500 text-sm">
-          <strong className="text-gray-400">Result: </strong>—
-        </p>
-      );
-    }
-    if (result >= 0) {
-      return (
-        <p className="text-white">
-          <strong className="text-blue-400">Result: </strong>
-          <span className="text-xl font-semibold">{result.toFixed(2)} W</span>
-        </p>
-      );
-    }
-    return (
-      <p className="text-red-300">
-        <strong>Error: </strong>Invalid input
-      </p>
-    );
-  };
-
-  return (
-    <div className={`h-[56px] flex items-center p-3 rounded-lg border whitespace-nowrap ${getBoxClasses()}`}>
-      {renderContent()}
-    </div>
-  );
-}
 
 type FormFieldsProps = {
   current: string;
@@ -76,13 +43,10 @@ function FormFields({
   cableEngine,
 }: FormFieldsProps) {
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="power-loss-current" className="text-gray-300 font-medium">
-            Current (A)
-          </label>
-          <input
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <FormControl label="Current (A)">
+          <Input
             id="power-loss-current"
             name="power-loss-current"
             type="text"
@@ -94,14 +58,10 @@ function FormFields({
                 onCurrentChange(value);
               }
             }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="power-loss-length" className="text-gray-300 font-medium">
-            Length (m)
-          </label>
-          <input
+        </FormControl>
+        <FormControl label="Length (m)">
+          <Input
             id="power-loss-length"
             name="power-loss-length"
             type="text"
@@ -113,14 +73,10 @@ function FormFields({
                 onLengthChange(value);
               }
             }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="power-loss-resistivity" className="text-gray-300 font-medium">
-            Resistivity (Ω·mm²/m)
-          </label>
-          <input
+        </FormControl>
+        <FormControl label="Resistivity (Ω·mm²/m)">
+          <Input
             id="power-loss-resistivity"
             name="power-loss-resistivity"
             type="text"
@@ -132,14 +88,10 @@ function FormFields({
                 onResistivityChange(value);
               }
             }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="power-loss-crossSection" className="text-gray-300 font-medium">
-            Cross-Section (mm²)
-          </label>
-          <input
+        </FormControl>
+        <FormControl label="Cross-Section (mm²)">
+          <Input
             id="power-loss-crossSection"
             name="power-loss-crossSection"
             type="text"
@@ -151,18 +103,19 @@ function FormFields({
                 onCrossSectionChange(value);
               }
             }}
-            className="bg-gray-900 border-2 border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
           />
-        </div>
+        </FormControl>
       </div>
-      <button
+      <Button
+        className="w-full"
+        variant="solid"
+        color="primary"
         onClick={onCalculate}
-        className="mt-6 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 rounded-lg h-12 cursor-pointer text-white font-semibold transition-colors shadow-lg hover:shadow-xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={!cableEngine}
       >
         Calculate Power Loss
-      </button>
-    </>
+      </Button>
+    </div>
   );
 }
 
@@ -172,34 +125,41 @@ type SampleDataBoxProps = {
 
 function SampleDataBox({ onApply }: SampleDataBoxProps) {
   return (
-    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 shadow-lg min-w-[180px]">
-      <div className="text-xs text-gray-400 mb-2 font-semibold">Sample Data</div>
-      <table className="text-xs text-gray-300 mb-2 whitespace-nowrap">
-        <tbody>
-          <tr>
-            <td className="pr-2">Current:</td>
-            <td className="font-mono">{SAMPLE_DATA.current} A</td>
-          </tr>
-          <tr>
-            <td className="pr-2">Length:</td>
-            <td className="font-mono">{SAMPLE_DATA.length} m</td>
-          </tr>
-          <tr>
-            <td className="pr-2">Resistivity:</td>
-            <td className="font-mono">{SAMPLE_DATA.resistivity}</td>
-          </tr>
-          <tr>
-            <td className="pr-2">Section:</td>
-            <td className="font-mono">{SAMPLE_DATA.crossSection} mm²</td>
-          </tr>
-        </tbody>
-      </table>
-      <button
+    <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
+      <List
+        headerText="Sample Data"
+        options={[
+          {
+            variant: "text",
+            label: "Current",
+            value: `${SAMPLE_DATA.current} A`,
+          },
+          {
+            variant: "text",
+            label: "Length",
+            value: `${SAMPLE_DATA.length} m`,
+          },
+          {
+            variant: "text",
+            label: "Resistivity",
+            value: SAMPLE_DATA.resistivity,
+          },
+          {
+            variant: "text",
+            label: "Section",
+            value: `${SAMPLE_DATA.crossSection} mm²`,
+          },
+        ]}
+      />
+      <Button
+        className="w-full"
+        variant="soft"
+        color="primary"
+        size="sm"
         onClick={onApply}
-        className="w-full text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1.5 rounded transition-colors cursor-pointer"
       >
         Apply
-      </button>
+      </Button>
     </div>
   );
 }
@@ -243,27 +203,32 @@ export default function PowerLoss({
   };
 
   return (
-    <div className="flex gap-4 items-start">
-      <div className="flex-1 bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-        <div className="flex items-center gap-4 mb-6">
-          <h2 className="text-3xl font-bold flex-1 text-white">Power Loss Calculation</h2>
-          <ResultBox result={result} />
+    <Section title="Power Loss Calculation">
+      <div className="flex gap-2 items-start p-2">
+        <div className="flex flex-col gap-3 flex-1">
+          <FormFields
+            current={current}
+            length={length}
+            resistivity={resistivity}
+            crossSection={crossSection}
+            onCurrentChange={setCurrent}
+            onLengthChange={setLength}
+            onResistivityChange={setResistivity}
+            onCrossSectionChange={setCrossSection}
+            onCalculate={handleCalculate}
+            cableEngine={cableEngine}
+          />
+          <MetricCard
+            className="w-37.5"
+            label=""
+            value={result !== null && result >= 0 ? result.toFixed(2) : "—"}
+            unit="W"
+            badgeTitle="Power Loss"
+          />
         </div>
-        <FormFields
-          current={current}
-          length={length}
-          resistivity={resistivity}
-          crossSection={crossSection}
-          onCurrentChange={setCurrent}
-          onLengthChange={setLength}
-          onResistivityChange={setResistivity}
-          onCrossSectionChange={setCrossSection}
-          onCalculate={handleCalculate}
-          cableEngine={cableEngine}
-        />
+        <SampleDataBox onApply={handleApplySample} />
       </div>
-      <SampleDataBox onApply={handleApplySample} />
-    </div>
+    </Section>
   );
 }
 
