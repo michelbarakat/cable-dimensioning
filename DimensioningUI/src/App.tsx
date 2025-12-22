@@ -17,9 +17,6 @@ export default function App() {
   }, []);
   return (
     <div className="p-4 w-full max-w-6xl mx-auto scrollbar">
-      <h1 className="text-3xl text-center mb-4">
-        CABLE DIMENSIONING - WEB ASSEMBLY
-      </h1>
       <p className="text-center text-gray-400 mb-10 text-sm">
         Powered by WebAssembly running in a Web Worker for optimal performance
         and responsive UI

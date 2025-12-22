@@ -32,9 +32,6 @@ function RootComponent() {
     <div className="min-h-screen bg-master-bg text-text-primary dark scrollbar">
       <div className="p-4 w-full max-w-6xl mx-auto">
         <header className="mb-4">
-          <Typography level="h1" className="text-center mb-2">
-            CABLE DIMENSIONING - WEB ASSEMBLY
-          </Typography>
           <nav className="flex flex-wrap justify-center gap-2 bg-surface rounded-sm p-1 border border-section-border">
 
             <Link

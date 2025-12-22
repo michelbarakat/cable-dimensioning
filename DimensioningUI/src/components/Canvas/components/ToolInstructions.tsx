@@ -1,4 +1,10 @@
 import type { Tool } from "../types";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Select01Icon,
+  Delete01Icon,
+  LinerIcon,
+} from "@hugeicons-pro/core-stroke-rounded";
 
 type ToolInstructionsProps = {
   activeTool: Tool;
@@ -6,18 +12,21 @@ type ToolInstructionsProps = {
 
 export function ToolInstructions({ activeTool }: ToolInstructionsProps) {
   return (
-    <p className="text-gray-400 text-sm mt-2">
+    <p className="text-text-secondary text-sm p-2 flex items-center gap-2">
       {activeTool === "select" ? (
         <>
-          ↔️ <strong>Selection Tool:</strong> Click to select segments. Drag endpoints to resize, drag body to move. Double-click to edit properties.
+          <HugeiconsIcon icon={Select01Icon} size={16} className="inline-block" />
+          <strong>Selection Tool:</strong> Click to select segments. Drag endpoints to resize, drag body to move. Double-click to edit properties.
         </>
       ) : activeTool === "erase" ? (
         <>
-          🗑️ <strong>Erase Tool:</strong> Click to delete segments.
+          <HugeiconsIcon icon={Delete01Icon} size={16} className="inline-block" />
+          <strong>Erase Tool:</strong> Click to delete segments.
         </>
       ) : (
         <>
-          📏 <strong>Segment Tool:</strong> Click and drag to draw cable
+          <HugeiconsIcon icon={LinerIcon} size={16} className="inline-block" />
+          <strong>Segment Tool:</strong> Click and drag to draw cable
           segments. Double-click a segment to edit its properties. Voltage drop updates in real-time.
         </>
       )}

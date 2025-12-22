@@ -151,7 +151,7 @@ export function Toolbar({
   const canRedo = historyIndex < historyLength - 1;
 
   return (
-    <div className="bg-surface rounded-sm p-2 border border-section-border mb-2">
+    <div className="bg-surface p-1 border border-section-border">
       <div className="flex items-center gap-2">
         <ButtonGroup variant="soft" color="neutral" size="sm">
           <Tooltip content="Undo" size="sm">

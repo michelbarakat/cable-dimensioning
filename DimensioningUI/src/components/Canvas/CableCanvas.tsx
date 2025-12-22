@@ -8,7 +8,6 @@ import { CanvasStage } from "./components/CanvasStage";
 import { Tooltip } from "./components/Tooltip";
 import { SegmentPropertiesPopover } from "./components/SegmentPropertiesPopover";
 import { ToolInstructions } from "./components/ToolInstructions";
-import { CanvasStats } from "./components/CanvasStats";
 import { LoadingWarning } from "./components/LoadingWarning";
 import { Section } from "@core/ui-headless";
 import { useVoltageDrop } from "./hooks/useVoltageDrop";
@@ -747,9 +746,11 @@ const CableCanvas = ({
           setCurrent={setCurrent}
           setIsThreePhase={setIsThreePhase}
           result={result}
+          totalSegments={totalSegments}
+          totalLength={totalLength}
         />
 
-        <div className="bg-surface rounded-sm p-4 border border-section-border">
+        <div className="bg-surface rounded-sm border border-section-border">
           <Toolbar 
             activeTool={activeTool} 
             setActiveTool={setActiveTool}
@@ -769,8 +770,7 @@ const CableCanvas = ({
           />
           <div 
             ref={containerRef} 
-            className="relative overflow-visible" 
-            style={{ position: 'relative' }}
+            className="relative overflow-visible"
             onClick={(e) => {
               // Close popover when clicking outside of it
               // But don't close if it's a double-click (handled separately)
@@ -811,10 +811,6 @@ const CableCanvas = ({
             />
           </div>
           <ToolInstructions activeTool={activeTool} />
-          <CanvasStats
-            totalSegments={totalSegments}
-            totalLength={totalLength}
-          />
         </div>
       </div>
     </Section>

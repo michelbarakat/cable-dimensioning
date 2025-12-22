@@ -154,6 +154,9 @@ function GetStartedSection() {
 function Home() {
   return (
     <div className="flex flex-col gap-2">
+      <Typography level="h1" className="text-center mb-4">
+        CABLE DIMENSIONING - WEB ASSEMBLY
+      </Typography>
       <AboutSection />
       <FeaturesSection />
       <TechnologyStackSection />

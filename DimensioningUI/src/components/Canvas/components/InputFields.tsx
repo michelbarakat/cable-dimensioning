@@ -1,6 +1,7 @@
 import { isValidNumberInput, parseNumber } from "../../../lib/numberInput";
 import { RANGES } from "../../../lib/ranges";
 import { FormControl, Input, Checkbox, MetricCard } from "@core/ui-headless";
+import { CanvasStats } from "./CanvasStats";
 
 type InputFieldsProps = {
   current: string;
@@ -8,6 +9,8 @@ type InputFieldsProps = {
   setCurrent: (value: string) => void;
   setIsThreePhase: (value: boolean) => void;
   result: number | null;
+  totalSegments: number;
+  totalLength: number;
 };
 
 const INTERMEDIATE_VALUES = ["", ".", ",", "-"];
@@ -53,6 +56,8 @@ export function InputFields({
   setCurrent,
   setIsThreePhase,
   result,
+  totalSegments,
+  totalLength,
 }: InputFieldsProps) {
   const handleCurrentChange = createNumberInputHandler(
     setCurrent,
@@ -84,7 +89,7 @@ export function InputFields({
         </FormControl>
       </div>
 
-      <div className="flex items-start">
+      <div className="flex flex-col gap-2">
         <MetricCard
           className="w-full"
           label=""
@@ -95,6 +100,10 @@ export function InputFields({
           }
           unit="Volts"
           badgeTitle="Total Voltage Drop"
+        />
+        <CanvasStats
+          totalSegments={totalSegments}
+          totalLength={totalLength}
         />
       </div>
     </div>
