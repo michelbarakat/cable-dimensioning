@@ -4,3 +4,12 @@
 
 /* Tailwind CSS v4 directive - tells Tailwind to scan this package for classes */
 @source "../node_modules/@core/ui-headless";
+
+/* Ensure Radix UI portals appear above popovers */
+[data-radix-portal],
+[data-radix-popper-content-wrapper],
+[data-radix-select-content],
+[data-radix-select-viewport],
+[role="listbox"] {
+  z-index: 1001 !important;
+}

@@ -47,7 +47,7 @@ export function CanvasStage({
 }: CanvasStageProps) {
   return (
     <div
-      className="bg-white border border-section-border w-full relative"
+      className="bg-white w-full relative"
       style={{ cursor }}
     >
       <Stage

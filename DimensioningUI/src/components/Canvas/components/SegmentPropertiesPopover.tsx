@@ -70,10 +70,11 @@ export function SegmentPropertiesPopover({
   return (
     <div
       data-popover
-      className="absolute bg-surface border border-section-border rounded-lg shadow-xl z-100 p-2 min-w-48 overflow-visible -translate-x-1/2 -translate-y-1/2"
+      className="absolute bg-surface border border-section-border rounded-lg shadow-xl p-2 min-w-48 -translate-x-1/2 -translate-y-1/2"
       style={{
         left: `${popover.x}px`,
         top: `${popover.y}px`,
+        zIndex: 1000,
       }}
       onClick={(e) => e.stopPropagation()}
     >
