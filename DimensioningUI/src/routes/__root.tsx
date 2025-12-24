@@ -7,6 +7,7 @@ import { useEffect, useState, createContext, useContext } from "react";
 import { Divider, IconButton, Tooltip } from "@core/ui-headless";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Sun01Icon, Moon02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import logoWhite from "../assets/logo_white.png";
 
 // Create a React Context for cableEngine
 const CableEngineContext = createContext<CableEngine | null>(null);
@@ -24,7 +25,7 @@ function NavButton({
   return (
     <Link
       to={to}
-      className="w-full flex rounded-sm items-center justify-center px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-text-primary hover:bg-accent-100 hover:text-black [&.active]:bg-accent-500 [&.active]:text-white"
+      className="w-full flex rounded-sm items-center justify-end px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-text-primary hover:bg-accent-100 hover:text-black [&.active]:bg-accent-500 [&.active]:text-white"
     >
       {children}
     </Link>
@@ -52,16 +53,43 @@ function RootComponent() {
       });
   }, []);
 
+  // Apply dark class to html element for Tailwind dark mode
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    if (isDark) {
+      htmlElement.classList.add("dark");
+    } else {
+      htmlElement.classList.remove("dark");
+    }
+    // Ensure initial state is applied
+    return () => {
+      // Cleanup on unmount
+    };
+  }, [isDark]);
+
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
 
   return (
-    <div
-      className={`min-h-screen bg-master-bg text-text-primary scrollbar ${isDark ? "dark" : ""}`}
-    >
+    <div className="min-h-screen bg-master-bg text-text-primary scrollbar">
       <div className="flex h-screen">
         <aside className="w-20 bg-surface border-r border-section-border p-2 flex flex-col gap-2 dark">
+          <div className="flex justify-center">
+            <img src={logoWhite} alt="SmartCraft" className="w-full h-auto max-h-12 object-contain" />
+          </div>
+          <Divider />
+          <nav className="flex flex-col gap-1">
+            <NavButton to="/">Home</NavButton>
+            <NavButton to="/resistivity">Resistivity</NavButton>
+            <NavButton to="/voltage-drop">Voltage Drop</NavButton>
+            <NavButton to="/cross-section">Cross Section</NavButton>
+            <NavButton to="/power-loss">Power Loss</NavButton>
+            <NavButton to="/derating">Derating</NavButton>
+            <NavButton to="/standard-sizes">Standard Sizes</NavButton>
+            <NavButton to="/canvas">Canvas</NavButton>
+          </nav>
+          <Divider />
           <div>
             <Tooltip
               size="sm"
@@ -76,17 +104,6 @@ function RootComponent() {
               />
             </Tooltip>
           </div>
-          <Divider />
-          <nav className="flex flex-col gap-1">
-            <NavButton to="/">Home</NavButton>
-            <NavButton to="/resistivity">Resistivity</NavButton>
-            <NavButton to="/voltage-drop">Voltage Drop</NavButton>
-            <NavButton to="/cross-section">Cross Section</NavButton>
-            <NavButton to="/power-loss">Power Loss</NavButton>
-            <NavButton to="/derating">Derating</NavButton>
-            <NavButton to="/standard-sizes">Standard Sizes</NavButton>
-            <NavButton to="/canvas">Canvas</NavButton>
-          </nav>
         </aside>
         <main className="flex-1 overflow-auto p-2">
           <div className="bg-background h-full">
