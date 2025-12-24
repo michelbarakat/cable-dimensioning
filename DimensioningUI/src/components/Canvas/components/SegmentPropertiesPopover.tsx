@@ -35,6 +35,7 @@ type SegmentPropertiesPopoverProps = {
   cableEngine: CableEngine | null;
   current: string;
   segmentsCount: number;
+  segments: Array<{ crossSection?: number }>;
 };
 
 export function SegmentPropertiesPopover({
@@ -44,19 +45,21 @@ export function SegmentPropertiesPopover({
   cableEngine,
   current,
   segmentsCount,
+  segments,
 }: SegmentPropertiesPopoverProps) {
   const popoverDataRef = useRef<typeof popover>(null);
 
   const { resistivity, deratedCurrent } = usePopoverCalculations(popover, current, cableEngine);
   const { isRounding, handleRoundToStandard } = useRoundToStandard(popover, setPopover, cableEngine, onUpdateSegment);
 
+  // Keep popoverDataRef in sync with popover state so closing saves current values
   useEffect(() => {
     if (popover?.visible) {
       popoverDataRef.current = popover;
     }
-  }, [popover?.visible]);
+  }, [popover]);
 
-  usePopoverRounding(popover, popoverDataRef, cableEngine, segmentsCount, onUpdateSegment);
+  usePopoverRounding(popover, popoverDataRef, cableEngine, segmentsCount, onUpdateSegment, segments);
 
   const handleEscape = useCallback(() => {
     setPopover(null);
@@ -92,12 +95,14 @@ export function SegmentPropertiesPopover({
           popover={popover}
           setPopover={setPopover}
           onUpdateSegment={onUpdateSegment}
+          segments={segments}
         />
 
         <TemperatureSelect
           popover={popover}
           setPopover={setPopover}
           onUpdateSegment={onUpdateSegment}
+          segments={segments}
         />
 
         <ReadOnlyFields

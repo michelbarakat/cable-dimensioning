@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
 import type {
   CableSegment,
@@ -13,6 +13,7 @@ import { Toolbar } from "./components/Toolbar";
 import { CanvasStage } from "./components/CanvasStage";
 import { Tooltip } from "./components/Tooltip";
 import { SegmentPropertiesPopover } from "./components/SegmentPropertiesPopover";
+import { CalibrationPopover } from "./components/CalibrationPopover";
 import { ToolInstructions } from "./components/ToolInstructions";
 import { LoadingWarning } from "./components/LoadingWarning";
 import { Section } from "@core/ui-headless";
@@ -68,6 +69,7 @@ const CableCanvas = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [stageSize, setStageSize] = useState({ width: 800, height: 500 });
   const [activeTool, setActiveTool] = useState<Tool>("select");
+  const [previousTool, setPreviousTool] = useState<Tool>("select"); // Store tool before calibration
   const [tooltip, setTooltip] = useState<{
     text: string;
     x: number;
@@ -86,6 +88,15 @@ const CableCanvas = ({
     temperature: TemperaturePreset;
   } | null>(null);
   const [floorplanImage, setFloorplanImage] = useState<HTMLImageElement | null>(null);
+  const [floorplanPixelsPerMeter, setFloorplanPixelsPerMeter] = useState<number | null>(null);
+  const [calibrationLine, setCalibrationLine] = useState<{ start: Point; end: Point } | null>(null);
+  const [calibrationPopover, setCalibrationPopover] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    lineLength: number; // in pixels
+  } | null>(null);
+  const [isCalibrating, setIsCalibrating] = useState(false);
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const doubleClickRef = useRef<boolean>(false);
@@ -209,7 +220,7 @@ const CableCanvas = ({
     setHoveredSegmentIndex,
   ]);
 
-  const handleSegmentDoubleClick = (segmentIndex: number) => {
+  const handleSegmentDoubleClick = (segmentIndex: number, mouseX?: number, mouseY?: number) => {
     if (!cableEngine || activeTool === "erase") return;
     const segment = segments[segmentIndex];
 
@@ -223,18 +234,23 @@ const CableCanvas = ({
       doubleClickTimeoutRef.current = null;
     }, 300);
 
-    // Calculate center position relative to the canvas container
-    let centerX = 0;
-    let centerY = 0;
-    if (containerRef.current) {
-      centerX = containerRef.current.clientWidth / 2;
-      centerY = containerRef.current.clientHeight / 2;
+    // Use mouse position if provided, otherwise fall back to center
+    let popoverX = 0;
+    let popoverY = 0;
+    if (mouseX !== undefined && mouseY !== undefined) {
+      // Mouse position is already in screen coordinates
+      popoverX = mouseX;
+      popoverY = mouseY;
+    } else if (containerRef.current) {
+      // Fallback to center if mouse position not available
+      popoverX = containerRef.current.clientWidth / 2;
+      popoverY = containerRef.current.clientHeight / 2;
     }
 
     setPopover({
       visible: true,
-      x: centerX,
-      y: centerY,
+      x: popoverX,
+      y: popoverY,
       segmentIndex,
       crossSection: (segment.crossSection ?? DEFAULTS.CROSS_SECTION).toString(),
       isCopper: segment.isCopper ?? DEFAULTS.IS_COPPER,
@@ -366,7 +382,7 @@ const CableCanvas = ({
     };
   }, [selectedSegmentIndices, activeTool, deleteSelectedSegments, popover]);
 
-  const { handleMouseDown, dragTimeoutRef } = useMouseHandlers({
+  const { handleMouseDown: baseHandleMouseDown, dragTimeoutRef } = useMouseHandlers({
     cableEngine,
     segments,
     activeTool,
@@ -395,6 +411,30 @@ const CableCanvas = ({
     setPopover,
     onSegmentDoubleClick: handleSegmentDoubleClick,
   });
+
+  // Override handleMouseDown to add calibration support
+  const handleMouseDown = useCallback((e: any) => {
+    // Handle calibration tool
+    if (activeTool === "calibrate" && !isSpacePressed && floorplanImage) {
+      const stage = e.target.getStage();
+      if (!stage) return;
+      
+      // Get pointer position relative to the Stage (container coordinates)
+      const pointerPos = stage.getPointerPosition();
+      if (!pointerPos) return;
+      
+      // Convert to stage coordinates by accounting for Stage position (pan)
+      const stagePoint = {
+        x: pointerPos.x - stagePosition.x,
+        y: pointerPos.y - stagePosition.y,
+      };
+      setIsCalibrating(true);
+      setCalibrationLine({ start: stagePoint, end: stagePoint });
+      return;
+    }
+    // Use base handler for other tools
+    baseHandleMouseDown(e);
+  }, [activeTool, isSpacePressed, floorplanImage, stagePosition, baseHandleMouseDown]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -578,41 +618,80 @@ const CableCanvas = ({
     setHoveredDeletable(null);
   };
 
-  const handleMouseMove = (e: any) => {
-    const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
-    const stagePoint = {
-      x: point.x - stagePosition.x,
-      y: point.y - stagePosition.y,
-    };
-
-    // Handle panning
+  // Helper: Handle drag operations (panning, point drag, segment drag)
+  const handleDragOperations = useCallback((pointerPos: Point, stagePoint: Point): boolean => {
     if (isPanning) {
-      handlePanMove(point);
-      return;
+      handlePanMove(pointerPos);
+      return true;
     }
-
-    // Handle dragging a point (resize)
     if (isDraggingPoint) {
       handlePointDrag(stagePoint);
-      return;
+      return true;
     }
-
-    // Handle dragging a segment (move)
     if (isDraggingSegment) {
       handleSegmentDrag(stagePoint);
-      return;
+      return true;
     }
+    return false;
+  }, [isPanning, isDraggingPoint, isDraggingSegment, handlePanMove, handlePointDrag, handleSegmentDrag]);
 
+  // Helper: Handle tool-specific operations
+  const handleToolOperations = useCallback((stagePoint: Point): boolean => {
     // Handle selection box dragging
     if (isSelecting && selectionBox) {
       setSelectionBox({ ...selectionBox, end: stagePoint });
-      return;
+      return true;
+    }
+
+    // Handle calibration line drawing
+    if (activeTool === "calibrate" && isCalibrating) {
+      if (calibrationLine) {
+        setCalibrationLine({ ...calibrationLine, end: stagePoint });
+      }
+      return true;
     }
 
     // Handle erase tool tooltips
     if (activeTool === "erase") {
       handleEraseToolMove(stagePoint);
+      return true;
+    }
+
+    return false;
+  }, [isSelecting, selectionBox, activeTool, isCalibrating, calibrationLine, handleEraseToolMove, setSelectionBox, setCalibrationLine]);
+
+  // Helper: Handle drawing updates
+  const handleDrawingUpdate = useCallback((stagePoint: Point) => {
+    if (!isDrawing) return;
+    const snappedPoint = snapToGridPoint(stagePoint, scale, snapToGrid);
+    setCurrentSegment((prev) => {
+      if (prev.length === 0) return [snappedPoint];
+      return [prev[0], snappedPoint]; // Keep start point, update end point
+    });
+  }, [isDrawing, scale, snapToGrid, setCurrentSegment]);
+
+  const handleMouseMove = useCallback((e: any) => {
+    const stage = e.target.getStage();
+    if (!stage) return;
+    
+    // Get pointer position relative to the Stage (container coordinates)
+    const pointerPos = stage.getPointerPosition();
+    if (!pointerPos) return;
+    
+    // Convert to stage coordinates by accounting for Stage position (pan)
+    // This gives us coordinates in the logical coordinate system where segments are stored
+    const stagePoint = {
+      x: pointerPos.x - stagePosition.x,
+      y: pointerPos.y - stagePosition.y,
+    };
+
+    // Handle drag operations (panning, point drag, segment drag)
+    if (handleDragOperations(pointerPos, stagePoint)) {
+      return;
+    }
+
+    // Handle tool-specific operations
+    if (handleToolOperations(stagePoint)) {
       return;
     }
 
@@ -621,15 +700,9 @@ const CableCanvas = ({
     setTooltip(null);
     setHoveredDeletable(null);
 
-    // Handle drawing
-    if (!isDrawing) return;
-    const snappedPoint = snapToGridPoint(stagePoint, scale, snapToGrid);
-    // Update only the end point to create a straight line
-    setCurrentSegment((prev) => {
-      if (prev.length === 0) return [snappedPoint];
-      return [prev[0], snappedPoint]; // Keep start point, update end point
-    });
-  };
+    // Handle drawing updates
+    handleDrawingUpdate(stagePoint);
+  }, [stagePosition, handleDragOperations, handleToolOperations, updateHoverStates, handleDrawingUpdate, setTooltip, setHoveredDeletable]);
 
   const handleDragEnd = () => {
     // Clear drag timeout if mouse is released before timeout
@@ -706,12 +779,54 @@ const CableCanvas = ({
     // calculateVoltageDrop will be called by useEffect
   };
 
+  const handleCalibrationCompletion = useCallback(() => {
+    if (!calibrationLine) return;
+    
+    const lineLength = Math.sqrt(
+      Math.pow(calibrationLine.end.x - calibrationLine.start.x, 2) +
+      Math.pow(calibrationLine.end.y - calibrationLine.start.y, 2)
+    );
+    
+    if (lineLength <= 10) {
+      setIsCalibrating(false);
+      setCalibrationLine(null);
+      return;
+    }
+
+    // Only show popover if line is long enough
+    const stage = stageRef.current;
+    if (!stage) {
+      setIsCalibrating(false);
+      setCalibrationLine(null);
+      return;
+    }
+
+    const pointerPos = stage.getPointerPosition();
+    if (!pointerPos || !containerRef.current) {
+      setIsCalibrating(false);
+      setCalibrationLine(null);
+      return;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    setCalibrationPopover({
+      visible: true,
+      x: pointerPos.x + rect.left,
+      y: pointerPos.y + rect.top,
+      lineLength,
+    });
+    setIsCalibrating(false);
+    setCalibrationLine(null);
+  }, [calibrationLine]);
+
   const handleMouseUp = () => {
+    // Early return for panning
     if (isPanning) {
       setIsPanning(false);
       return;
     }
 
+    // Early return if drag operation completed
     if (handleDragEnd()) {
       return;
     }
@@ -720,6 +835,13 @@ const CableCanvas = ({
     if (isSelecting) {
       setIsSelecting(false);
       setSelectionBox(null);
+    }
+
+    // Handle calibration completion
+    const isCompletingCalibration = activeTool === "calibrate" && isCalibrating;
+    if (isCompletingCalibration) {
+      handleCalibrationCompletion();
+      return;
     }
 
     handleDrawingComplete();
@@ -748,12 +870,37 @@ const CableCanvas = ({
     setHistoryIndex(0);
   };
 
+  const handleCalibrate = useCallback((actualLengthMm: number, lineLengthPx: number) => {
+    if (!floorplanImage) return;
+    
+    // Convert mm to meters
+    const actualLengthM = actualLengthMm / 1000;
+    
+    // Calculate pixels per meter in the image: lineLengthPx / actualLengthM
+    // Store this so we can recalculate scale factor when canvas scale changes
+    const pixelsPerMeter = lineLengthPx / actualLengthM;
+    
+    setFloorplanPixelsPerMeter(pixelsPerMeter);
+    setIsCalibrating(false);
+    setCalibrationLine(null);
+    // Switch back to the tool that was active before calibration
+    setActiveTool(previousTool);
+  }, [floorplanImage, previousTool]);
+
   const handleFloorplanUpload = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
+        // Clear previous image and calibration
         setFloorplanImage(img);
+        setFloorplanPixelsPerMeter(null);
+        setCalibrationLine(null);
+        setCalibrationPopover(null);
+        setIsCalibrating(false);
+        // Store current tool and switch to calibrate tool
+        setPreviousTool(activeTool);
+        setActiveTool("calibrate");
       };
       img.onerror = () => {
         console.error("Failed to load image");
@@ -845,6 +992,15 @@ const CableCanvas = ({
 
   const currentPoints = currentSegment.length > 0 ? currentSegment : [];
 
+  // Calculate floorplan scale dynamically based on current canvas scale
+  // This ensures the image scales correctly when zooming in/out
+  const floorplanScale = useMemo(() => {
+    if (!floorplanPixelsPerMeter) return 1;
+    // Calculate scale factor: canvas scale (px/m) / image pixels per meter
+    // This scales the image so that 1 meter in the image matches 1 meter on the canvas
+    return scale / floorplanPixelsPerMeter;
+  }, [scale, floorplanPixelsPerMeter]);
+
   // Calculate total segments and length including current segment being drawn
   const totalSegments = segments.length + (currentSegment.length >= 2 ? 1 : 0);
   const totalLength = (() => {
@@ -926,6 +1082,8 @@ const CableCanvas = ({
               stageRef={stageRef}
               cursor={cursor}
               floorplanImage={floorplanImage}
+              floorplanScale={floorplanScale}
+              calibrationLine={calibrationLine}
             />
             <Tooltip tooltip={tooltip} />
             <SegmentPropertiesPopover
@@ -935,6 +1093,12 @@ const CableCanvas = ({
               cableEngine={cableEngine}
               current={current}
               segmentsCount={segments.length}
+              segments={segments}
+            />
+            <CalibrationPopover
+              popover={calibrationPopover}
+              setPopover={setCalibrationPopover}
+              onCalibrate={handleCalibrate}
             />
           </div>
           <ToolInstructions activeTool={activeTool} />

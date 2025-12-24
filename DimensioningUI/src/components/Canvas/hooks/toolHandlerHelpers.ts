@@ -168,7 +168,7 @@ export const createDrawingStarter = (
 
 type DoubleClickHandlerConfig = {
   lastClickRef: React.MutableRefObject<{ time: number; point: HoveredPoint | null }>;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
   clearDragTimeout: () => void;
 };
 
@@ -220,7 +220,7 @@ export const createSelectToolHandler = (config: SelectToolHandlerConfig) =>
 type ProcessDoubleClickConfig = {
   segmentIndex: number | null;
   lastClickRef: { current: { time: number; point: HoveredPoint | null } };
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
   clearDragTimeout: () => void;
 };
 

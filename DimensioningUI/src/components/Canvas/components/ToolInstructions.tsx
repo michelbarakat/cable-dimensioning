@@ -4,6 +4,7 @@ import {
   Select01Icon,
   Delete01Icon,
   LinerIcon,
+  RulerIcon,
 } from "@hugeicons-pro/core-stroke-rounded";
 
 type ToolInstructionsProps = {
@@ -22,6 +23,11 @@ export function ToolInstructions({ activeTool }: ToolInstructionsProps) {
         <>
           <HugeiconsIcon icon={Delete01Icon} size={16} className="inline-block" />
           <strong>Erase Tool:</strong> Click to delete segments.
+        </>
+      ) : activeTool === "calibrate" ? (
+        <>
+          <HugeiconsIcon icon={RulerIcon} size={16} className="inline-block" />
+          <strong>Calibration Tool:</strong> Draw a line on a known distance in the floorplan image. Enter the actual dimension when prompted.
         </>
       ) : (
         <>

@@ -16,13 +16,15 @@ type CanvasStageProps = {
   baseScale: number;
   current: string;
   selectionBox: { start: Point; end: Point } | null;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
   handleMouseDown: (e: any) => void;
   handleMouseMove: (e: any) => void;
   handleMouseUp: () => void;
   stageRef: React.RefObject<any>;
   cursor: string;
   floorplanImage: HTMLImageElement | null;
+  floorplanScale: number;
+  calibrationLine: { start: Point; end: Point } | null;
 };
 
 export function CanvasStage({
@@ -46,6 +48,8 @@ export function CanvasStage({
   stageRef,
   cursor,
   floorplanImage,
+  floorplanScale,
+  calibrationLine,
 }: CanvasStageProps) {
   return (
     <div
@@ -76,6 +80,8 @@ export function CanvasStage({
           selectionBox={selectionBox}
           onSegmentDoubleClick={onSegmentDoubleClick}
           floorplanImage={floorplanImage}
+          floorplanScale={floorplanScale}
+          calibrationLine={calibrationLine}
           stageSize={stageSize}
         />
       </Stage>

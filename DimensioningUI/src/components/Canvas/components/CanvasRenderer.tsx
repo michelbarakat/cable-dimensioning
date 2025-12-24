@@ -17,8 +17,10 @@ type CanvasRendererProps = {
   baseScale: number;
   current: string;
   selectionBox: { start: Point; end: Point } | null;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
   floorplanImage: HTMLImageElement | null;
+  floorplanScale: number;
+  calibrationLine: { start: Point; end: Point } | null;
   stageSize: { width: number; height: number };
 };
 
@@ -48,15 +50,19 @@ function isValidSegment(segment: CableSegment | null | undefined): boolean {
 
 function FloorplanLayer({
   floorplanImage,
+  floorplanScale,
   stageSize,
 }: {
   floorplanImage: HTMLImageElement | null;
+  floorplanScale: number;
   stageSize: { width: number; height: number };
 }) {
   if (!floorplanImage) return null;
 
-  const x = (stageSize.width - floorplanImage.width) / 2;
-  const y = (stageSize.height - floorplanImage.height) / 2;
+  const scaledWidth = floorplanImage.width * floorplanScale;
+  const scaledHeight = floorplanImage.height * floorplanScale;
+  const x = (stageSize.width - scaledWidth) / 2;
+  const y = (stageSize.height - scaledHeight) / 2;
 
   return (
     <Layer>
@@ -64,8 +70,8 @@ function FloorplanLayer({
         image={floorplanImage}
         x={x}
         y={y}
-        width={floorplanImage.width}
-        height={floorplanImage.height}
+        width={scaledWidth}
+        height={scaledHeight}
         listening={false}
         opacity={0.7}
       />
@@ -85,7 +91,7 @@ type DrawingLayerProps = {
   selectionBox: { start: Point; end: Point } | null;
   currentPoints: Point[];
   current: string;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
 };
 
 function SelectionBox({ selectionBox, scaleFactor }: { selectionBox: { start: Point; end: Point } | null; scaleFactor: number }) {
@@ -150,7 +156,7 @@ function SegmentsList({
   scaleFactor: number;
   selectedSegmentIndices: number[];
   hoveredSegmentIndex: number | null;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
 }) {
   return (
     <>
@@ -214,6 +220,10 @@ function SegmentPointsList({
   );
 }
 
+type DrawingLayerPropsWithCalibration = DrawingLayerProps & {
+  calibrationLine: { start: Point; end: Point } | null;
+};
+
 function DrawingLayer({
   gridLines,
   segments,
@@ -227,10 +237,26 @@ function DrawingLayer({
   currentPoints,
   current,
   onSegmentDoubleClick,
-}: DrawingLayerProps) {
+  calibrationLine,
+}: DrawingLayerPropsWithCalibration) {
   return (
     <Layer>
       <GridLines gridLines={gridLines} />
+      {calibrationLine && (
+        <Line
+          points={[
+            calibrationLine.start.x,
+            calibrationLine.start.y,
+            calibrationLine.end.x,
+            calibrationLine.end.y,
+          ]}
+          stroke="#10b981"
+          strokeWidth={2}
+          lineCap="round"
+          dash={[5, 5]}
+          listening={false}
+        />
+      )}
       <SegmentsList
         segments={segments}
         sortedIndices={sortedIndices}
@@ -273,7 +299,7 @@ function SegmentLine({
   scaleFactor: number;
   selectedSegmentIndices: number[];
   hoveredSegmentIndex: number | null;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
 }) {
   const isCopper = segment.isCopper ?? DEFAULTS.IS_COPPER;
   const crossSection = segment.crossSection ?? DEFAULTS.CROSS_SECTION;
@@ -302,7 +328,10 @@ function SegmentLine({
     if (stage) {
       const pos = stage.getPointerPosition();
       if (pos) {
-        onSegmentDoubleClick(segIndex);
+        // getPointerPosition() returns coordinates relative to the stage container
+        // These are already in the correct coordinate system for absolute positioning
+        // relative to the canvas container
+        onSegmentDoubleClick(segIndex, pos.x, pos.y);
       }
     }
   };
@@ -341,6 +370,8 @@ export function CanvasRenderer({
   selectionBox,
   onSegmentDoubleClick,
   floorplanImage,
+  floorplanScale,
+  calibrationLine,
   stageSize,
 }: CanvasRendererProps) {
   const scaleFactor = baseScale > 0 ? scale / baseScale : 1;
@@ -348,7 +379,7 @@ export function CanvasRenderer({
 
   return (
     <>
-      <FloorplanLayer floorplanImage={floorplanImage} stageSize={stageSize} />
+      <FloorplanLayer floorplanImage={floorplanImage} floorplanScale={floorplanScale} stageSize={stageSize} />
       <DrawingLayer
         gridLines={gridLines}
         segments={segments}
@@ -362,6 +393,7 @@ export function CanvasRenderer({
         currentPoints={currentPoints}
         current={current}
         onSegmentDoubleClick={onSegmentDoubleClick}
+        calibrationLine={calibrationLine}
       />
     </>
   );

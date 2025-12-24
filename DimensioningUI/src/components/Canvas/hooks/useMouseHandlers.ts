@@ -82,9 +82,20 @@ export function useMouseHandlers({
 
   const handleMouseDown = useCallback((e: any) => {
     const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
-    const stagePoint = { x: point.x - stagePosition.x, y: point.y - stagePosition.y };
-    isSpacePressed ? handlePanning(point) : executeToolAction(stagePoint);
+    if (!stage) return;
+    
+    // Get pointer position relative to the Stage (container coordinates)
+    const pointerPos = stage.getPointerPosition();
+    if (!pointerPos) return;
+    
+    // Convert to stage coordinates by accounting for Stage position (pan)
+    // This gives us coordinates in the logical coordinate system where segments are stored
+    const stagePoint = { 
+      x: pointerPos.x - stagePosition.x, 
+      y: pointerPos.y - stagePosition.y 
+    };
+    
+    isSpacePressed ? handlePanning(pointerPos) : executeToolAction(stagePoint);
   }, [isSpacePressed, stagePosition, handlePanning, executeToolAction]);
 
   return {

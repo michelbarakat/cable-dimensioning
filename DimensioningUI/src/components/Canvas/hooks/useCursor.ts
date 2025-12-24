@@ -20,6 +20,7 @@ export function useCursor(
     if (hoveredDeletable !== null) return "pointer";
     return "not-allowed";
   }
+  if (activeTool === "calibrate") return "crosshair";
   if (activeTool === "crossSection") return "crosshair";
   if (hoveredPointIndex !== null) {
     // Show crosshair for endpoints when select tool is active

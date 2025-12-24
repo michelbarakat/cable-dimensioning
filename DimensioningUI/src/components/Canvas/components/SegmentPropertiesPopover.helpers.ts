@@ -30,10 +30,15 @@ export type PopoverData = {
 
 export const applySegmentUpdate = (
   updatedPopover: PopoverData,
-  onUpdateSegment: (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => void
+  onUpdateSegment: (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => void,
+  currentCrossSection?: number
 ) => {
-  const numValue = parseNumber(updatedPopover.crossSection) || DEFAULTS.CROSS_SECTION;
-  const clampedValue = clampCrossSection(numValue);
+  // Use current segment's cross-section if popover value is invalid, otherwise use popover value
+  const numValue = parseNumber(updatedPopover.crossSection);
+  const crossSectionToUse = !isNaN(numValue) && numValue > 0
+    ? numValue
+    : (currentCrossSection ?? DEFAULTS.CROSS_SECTION);
+  const clampedValue = clampCrossSection(crossSectionToUse);
   onUpdateSegment(
     updatedPopover.segmentIndex,
     clampedValue,

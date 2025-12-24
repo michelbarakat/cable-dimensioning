@@ -20,7 +20,7 @@ export type CableSegment = {
   connectedTo?: number; // index of segment this is connected to (for merging)
 };
 
-export type Tool = "line" | "erase" | "select";
+export type Tool = "line" | "erase" | "select" | "calibrate";
 
 export type HoveredPoint = {
   segment: number;

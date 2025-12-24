@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { parseNumber } from "../../../../lib/numberInput";
 import { RANGES } from "../../../../lib/ranges";
+import { DEFAULTS } from "../../../../lib/defaults";
 import type { CableEngine } from "../../../../lib/cable_dimensioning";
 import type { TemperaturePreset } from "../../types";
 
@@ -19,7 +20,8 @@ export function usePopoverRounding(
   popoverDataRef: React.MutableRefObject<PopoverData | null>,
   cableEngine: CableEngine | null,
   segmentsCount: number,
-  onUpdateSegment: (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => void
+  onUpdateSegment: (segmentIndex: number, crossSection: number, isCopper: boolean, temperature: TemperaturePreset) => void,
+  segments: Array<{ crossSection?: number }>
 ) {
   const isMountedRef = useRef<boolean>(true);
   const roundingCancelRef = useRef<boolean>(false);
@@ -46,15 +48,22 @@ export function usePopoverRounding(
     const wasVisible = popoverDataRef.current?.visible ?? false;
     const isVisible = popover?.visible ?? false;
 
-    if (!wasVisible || isVisible || !popoverDataRef.current || !cableEngine) {
+    // Update ref whenever popover is visible to keep it in sync with latest values
+    if (isVisible && popover) {
+      popoverDataRef.current = popover;
+    }
+
+    // Only run when popover transitions from visible to hidden
+    if (!wasVisible || isVisible || !popoverDataRef.current) {
       return;
     }
 
+    // Capture the latest popover data from ref (which should be up-to-date)
     const popoverData = popoverDataRef.current;
     roundingCancelRef.current = true;
     roundingCancelRef.current = false;
 
-    const roundOnClose = async () => {
+    const saveOnClose = async () => {
       if (roundingCancelRef.current || !isMountedRef.current) {
         return;
       }
@@ -64,7 +73,13 @@ export function usePopoverRounding(
       }
 
       const numValue = parseNumber(popoverData.crossSection);
-      if (!isNaN(numValue) && numValue > 0) {
+      // Get current segment's cross-section as fallback
+      const currentSegment = segments[popoverData.segmentIndex];
+      const currentCrossSection = currentSegment?.crossSection ?? DEFAULTS.CROSS_SECTION;
+      let crossSectionToSave: number;
+      
+      // Try to round if cableEngine is available and value is valid
+      if (cableEngine && !isNaN(numValue) && numValue > 0) {
         try {
           const roundedValue = await cableEngine.roundToStandard(numValue);
 
@@ -76,28 +91,48 @@ export function usePopoverRounding(
             return;
           }
 
-          const clampedValue = Math.max(
-            RANGES.CROSS_SECTION.MIN,
-            Math.min(RANGES.CROSS_SECTION.MAX, roundedValue)
-          );
-          onUpdateSegmentRef.current(
-            popoverData.segmentIndex,
-            clampedValue,
-            popoverData.isCopper,
-            popoverData.temperature
-          );
+          crossSectionToSave = roundedValue;
         } catch (error) {
           if (!roundingCancelRef.current) {
             console.error("Error rounding to standard on close:", error);
           }
+          // Use current value if rounding fails
+          crossSectionToSave = numValue;
         }
+      } else {
+        // Use popover value if valid, otherwise use current segment's cross-section
+        crossSectionToSave = !isNaN(numValue) && numValue > 0
+          ? numValue
+          : currentCrossSection;
       }
+      
+      // Final check before saving
+      if (roundingCancelRef.current || !isMountedRef.current) {
+        return;
+      }
+
+      if (popoverData.segmentIndex >= segmentsCountRef.current) {
+        return;
+      }
+
+      // Save all popover values (cross-section, isCopper, temperature) when closing
+      const clampedValue = Math.max(
+        RANGES.CROSS_SECTION.MIN,
+        Math.min(RANGES.CROSS_SECTION.MAX, crossSectionToSave)
+      );
+      
+      onUpdateSegmentRef.current(
+        popoverData.segmentIndex,
+        clampedValue,
+        popoverData.isCopper,
+        popoverData.temperature
+      );
     };
 
-    roundOnClose();
+    saveOnClose();
 
     return () => {
       roundingCancelRef.current = true;
     };
-  }, [popover?.visible, cableEngine, popoverDataRef]);
+  }, [popover, cableEngine, popoverDataRef, segments]);
 }

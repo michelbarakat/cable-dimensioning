@@ -43,5 +43,5 @@ export type UseMouseHandlersProps = {
     isCopper: boolean;
     temperature: TemperaturePreset;
   } | null) => void;
-  onSegmentDoubleClick: (segmentIndex: number) => void;
+  onSegmentDoubleClick: (segmentIndex: number, mouseX?: number, mouseY?: number) => void;
 };
