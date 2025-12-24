@@ -7,12 +7,12 @@ import {
   Checkbox,
   FormControl,
   Input,
-  List,
   MetricCard,
   Section,
 } from "@core/ui-headless";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserWarning02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import { SampleDataBox } from "../Canvas/SampleDataBox";
 
 const SAMPLE_DATA = {
   temperature: "20",
@@ -96,32 +96,21 @@ const Resistivity = ({
             badgeTitle="Resistivity"
           />
         </div>
-        <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
-          <List
-            headerText="Sample Data"
-            options={[
-              {
-                variant: "text",
-                label: "Temperature",
-                value: `${SAMPLE_DATA.temperature}°C`,
-              },
-              {
-                variant: "text",
-                label: "Copper",
-                value: "yes",
-              },
-            ]}
-          />
-          <Button
-            className="w-full"
-            variant="soft"
-            color="primary"
-            size="sm"
-            onClick={handleApplySample}
-          >
-            Apply
-          </Button>
-        </div>
+        <SampleDataBox
+          options={[
+            {
+              variant: "text",
+              label: "Temperature",
+              value: `${SAMPLE_DATA.temperature}°C`,
+            },
+            {
+              variant: "text",
+              label: "Copper",
+              value: "yes",
+            },
+          ]}
+          onApply={handleApplySample}
+        />
       </div>
     </Section>
   );

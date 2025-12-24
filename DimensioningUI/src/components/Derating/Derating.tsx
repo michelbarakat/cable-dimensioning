@@ -8,11 +8,11 @@ import {
   Button,
   FormControl,
   Input,
-  List,
   MetricCard,
   Section,
   Select,
 } from "@core/ui-headless";
+import { SampleDataBox } from "../Canvas/SampleDataBox";
 
 const SAMPLE_DATA = {
   current: DEFAULTS.CURRENT,
@@ -93,35 +93,6 @@ function FormFields({
   );
 }
 
-type SampleDataBoxProps = {
-  onApply: () => void;
-};
-
-function SampleDataBox({ onApply }: SampleDataBoxProps) {
-  return (
-    <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
-      <List
-        headerText="Sample Data"
-        options={[
-          {
-            variant: "text",
-            label: "Current",
-            value: `${SAMPLE_DATA.current} A`,
-          },
-        ]}
-      />
-      <Button
-        className="w-full"
-        variant="soft"
-        color="primary"
-        size="sm"
-        onClick={onApply}
-      >
-        Apply
-      </Button>
-    </div>
-  );
-}
 
 export default function Derating({
   cableEngine = null,
@@ -190,7 +161,16 @@ export default function Derating({
             badgeTitle="Derated Current"
           />
         </div>
-        <SampleDataBox onApply={handleApplySample} />
+        <SampleDataBox
+          options={[
+            {
+              variant: "text",
+              label: "Current",
+              value: `${SAMPLE_DATA.current} A`,
+            },
+          ]}
+          onApply={handleApplySample}
+        />
       </div>
     </Section>
   );

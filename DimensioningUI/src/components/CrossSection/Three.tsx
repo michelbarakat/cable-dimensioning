@@ -5,10 +5,10 @@ import {
   Button,
   FormControl,
   Input,
-  List,
   MetricCard,
   Section,
 } from "@core/ui-headless";
+import { SampleDataBox } from "../Canvas/SampleDataBox";
 
 const SAMPLE_DATA = {
   current: "16",
@@ -119,50 +119,6 @@ function FormFields({
   );
 }
 
-type SampleDataBoxProps = {
-  onApply: () => void;
-};
-
-function SampleDataBox({ onApply }: SampleDataBoxProps) {
-  return (
-    <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
-      <List
-        headerText="Sample Data"
-        options={[
-          {
-            variant: "text",
-            label: "Current",
-            value: `${SAMPLE_DATA.current} A`,
-          },
-          {
-            variant: "text",
-            label: "Length",
-            value: `${SAMPLE_DATA.length} m`,
-          },
-          {
-            variant: "text",
-            label: "Resistivity",
-            value: SAMPLE_DATA.resistivity,
-          },
-          {
-            variant: "text",
-            label: "Max ΔV",
-            value: `${SAMPLE_DATA.maxVoltageDrop} V`,
-          },
-        ]}
-      />
-      <Button
-        className="w-full"
-        variant="soft"
-        color="primary"
-        size="sm"
-        onClick={onApply}
-      >
-        Apply
-      </Button>
-    </div>
-  );
-}
 
 export default function Three({
   cableEngine = null,
@@ -226,7 +182,31 @@ export default function Three({
             badgeTitle="Cross-Section"
           />
         </div>
-        <SampleDataBox onApply={handleApplySample} />
+        <SampleDataBox
+          options={[
+            {
+              variant: "text",
+              label: "Current",
+              value: `${SAMPLE_DATA.current} A`,
+            },
+            {
+              variant: "text",
+              label: "Length",
+              value: `${SAMPLE_DATA.length} m`,
+            },
+            {
+              variant: "text",
+              label: "Resistivity",
+              value: SAMPLE_DATA.resistivity,
+            },
+            {
+              variant: "text",
+              label: "Max ΔV",
+              value: `${SAMPLE_DATA.maxVoltageDrop} V`,
+            },
+          ]}
+          onApply={handleApplySample}
+        />
       </div>
     </Section>
   );

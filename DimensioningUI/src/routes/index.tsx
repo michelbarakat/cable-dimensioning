@@ -5,17 +5,37 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+const SECTION_CLASSES = "bg-surface rounded-sm p-3 border border-section-border";
+const SECTION_TITLE_CLASSES = "text-3xl font-bold text-text-primary";
+const CARD_CLASSES = "bg-neutral-800 rounded-sm p-3 border border-section-border";
+const LINK_BASE_CLASSES = "px-4 py-2 text-white rounded-sm transition-colors font-semibold";
+
+function Section({
+  title,
+  children,
+}: {
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={SECTION_CLASSES}>
+      {title && <h2 className={SECTION_TITLE_CLASSES}>{title}</h2>}
+      {children}
+    </section>
+  );
+}
+
 function AboutSection() {
   return (
-    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
+    <Section>
       <Typography level="h2">About This Project</Typography>
       <Typography level="p">
-        This is a web-based cable dimensioning tool built with WebAssembly for high-performance
+        This is a web-based cable dimensioning tool built with <strong className="text-accent-500">WebAssembly</strong> for high-performance
         electrical engineering calculations. The core calculation engine is written in C and
-        compiled to WebAssembly using Emscripten. All WASM computations run in a <strong className="text-blue-400">Web Worker</strong>,
+        compiled to WebAssembly using Emscripten. All WASM computations run in a <strong className="text-accent-500">Web Worker</strong>,
         ensuring fast, non-blocking computations that keep the UI fully responsive even during heavy calculations.
       </Typography>
-    </section>
+    </Section>
   );
 }
 
@@ -61,10 +81,10 @@ const features: Feature[] = [
 function FeatureItem({ icon, title, description }: Feature) {
   return (
     <li className="flex items-start gap-3">
-      <span className="text-blue-400 text-xl mt-1">{icon}</span>
+      <span className="text-accent-500 text-xl mt-1">{icon}</span>
       <div>
-        <strong className="text-white text-lg">{title}</strong>
-        <p className="text-gray-400 mt-1">{description}</p>
+        <strong className="text-text-primary text-lg">{title}</strong>
+        <p className="text-text-tertiary mt-1">{description}</p>
       </div>
     </li>
   );
@@ -72,14 +92,13 @@ function FeatureItem({ icon, title, description }: Feature) {
 
 function FeaturesSection() {
   return (
-    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
-      <h2 className="text-3xl font-bold mb-6 text-white">Features</h2>
+    <Section title="Features">
       <ul className="space-y-4">
         {features.map((feature) => (
           <FeatureItem key={feature.title} {...feature} />
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }
 
@@ -109,25 +128,23 @@ const techStack: TechStackItem[] = [
 
 function TechnologyStackSection() {
   return (
-    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
-      <h2 className="text-3xl font-bold mb-6 text-white">Technology Stack</h2>
+    <Section title="Technology Stack">
       <div className="grid md:grid-cols-3 gap-4">
         {techStack.map((item) => (
-          <div key={item.title} className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+          <div key={item.title} className={CARD_CLASSES}>
             <h3 className={`${item.color} font-semibold mb-2`}>{item.title}</h3>
-            <p className="text-gray-300 text-sm">{item.description}</p>
+            <p className="text-text-tertiary text-sm">{item.description}</p>
           </div>
         ))}
       </div>
-    </section>
+    </Section>
   );
 }
 
 function GetStartedSection() {
   return (
-    <section className="bg-surface rounded-sm p-6 shadow-lg border border-section-border">
-      <h2 className="text-3xl font-bold mb-4 text-white">Get Started</h2>
-      <p className="text-gray-200 leading-relaxed text-lg mb-6">
+    <Section title="Get Started">
+      <p className="text-text-tertiary leading-relaxed text-lg mb-6">
         Use the navigation menu above to access the different calculation tools. All calculations
         run in WebAssembly within a Web Worker thread, ensuring optimal performance and keeping the UI
         fully responsive even during heavy computations. You can interact with the interface, drag elements,
@@ -136,25 +153,25 @@ function GetStartedSection() {
       <div className="flex flex-wrap gap-4">
         <Link
           to="/resistivity"
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors font-semibold shadow-lg hover:shadow-xl"
+          className={`${LINK_BASE_CLASSES} bg-accent-500 hover:bg-accent-600`}
         >
           Start with Resistivity →
         </Link>
         <Link
           to="/voltage-drop"
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors font-semibold shadow-lg hover:shadow-xl"
+          className={`${LINK_BASE_CLASSES} bg-primary-400 hover:bg-primary-500`}
         >
           Calculate Voltage Drop →
         </Link>
       </div>
-    </section>
+    </Section>
   );
 }
 
 function Home() {
   return (
     <div className="flex flex-col gap-2">
-      <Typography level="h1" className="text-center mb-4">
+      <Typography level="h1" className="text-center">
         CABLE DIMENSIONING - WEB ASSEMBLY
       </Typography>
       <AboutSection />

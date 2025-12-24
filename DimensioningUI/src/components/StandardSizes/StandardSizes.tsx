@@ -5,10 +5,10 @@ import {
   Button,
   FormControl,
   Input,
-  List,
   MetricCard,
   Section,
 } from "@core/ui-headless";
+import { SampleDataBox } from "../Canvas/SampleDataBox";
 
 const SAMPLE_DATA = {
   crossSection: "3.2",
@@ -79,27 +79,16 @@ export default function StandardSizes({
             badgeTitle="Standard Size"
           />
         </div>
-        <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
-          <List
-            headerText="Sample Data"
-            options={[
-              {
-                variant: "text",
-                label: "Section",
-                value: `${SAMPLE_DATA.crossSection} mm²`,
-              },
-            ]}
-          />
-          <Button
-            className="w-full"
-            variant="soft"
-            color="primary"
-            size="sm"
-            onClick={handleApplySample}
-          >
-            Apply
-          </Button>
-        </div>
+        <SampleDataBox
+          options={[
+            {
+              variant: "text",
+              label: "Section",
+              value: `${SAMPLE_DATA.crossSection} mm²`,
+            },
+          ]}
+          onApply={handleApplySample}
+        />
       </div>
     </Section>
   );

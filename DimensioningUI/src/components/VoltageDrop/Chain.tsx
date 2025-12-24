@@ -7,12 +7,12 @@ import {
   FormControl,
   IconButton,
   Input,
-  List,
   MetricCard,
   Section,
 } from "@core/ui-headless";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Remove01Icon } from "@hugeicons-pro/core-stroke-rounded";
+import { SampleDataBox } from "../Canvas/SampleDataBox";
 
 type Segment = {
   length: number;
@@ -198,45 +198,6 @@ function FormFields({
   );
 }
 
-type SampleDataBoxProps = {
-  onApply: () => void;
-};
-
-function SampleDataBox({ onApply }: SampleDataBoxProps) {
-  return (
-    <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
-      <List
-        headerText="Sample Data"
-        options={[
-          {
-            variant: "text",
-            label: "Current",
-            value: `${SAMPLE_DATA.current} A`,
-          },
-          {
-            variant: "text",
-            label: "Resistivity",
-            value: SAMPLE_DATA.resistivity,
-          },
-          ...SAMPLE_DATA.segments.map((s, index) => ({
-            variant: "text" as const,
-            label: index === 0 ? "Segments" : "",
-            value: `${s.length}m / ${s.section}mm²`,
-          })),
-        ]}
-      />
-      <Button
-        className="w-full"
-        variant="soft"
-        color="primary"
-        size="sm"
-        onClick={onApply}
-      >
-        Apply
-      </Button>
-    </div>
-  );
-}
 
 const Chain = ({
   cableEngine = null,
@@ -342,7 +303,26 @@ const Chain = ({
             badgeTitle="Voltage Drop"
           />
         </div>
-        <SampleDataBox onApply={handleApplySample} />
+        <SampleDataBox
+          options={[
+            {
+              variant: "text",
+              label: "Current",
+              value: `${SAMPLE_DATA.current} A`,
+            },
+            {
+              variant: "text",
+              label: "Resistivity",
+              value: SAMPLE_DATA.resistivity,
+            },
+            ...SAMPLE_DATA.segments.map((s, index) => ({
+              variant: "text" as const,
+              label: index === 0 ? "Segments" : "",
+              value: `${s.length}m / ${s.section}mm²`,
+            })),
+          ]}
+          onApply={handleApplySample}
+        />
       </div>
     </Section>
   );

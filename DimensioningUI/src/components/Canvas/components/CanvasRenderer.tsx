@@ -28,7 +28,7 @@ function GridLines({ gridLines }: { gridLines: Array<{ points: number[]; key: st
           points={line.points}
           stroke="#4b5563"
           strokeWidth={0.5}
-          opacity={0.3}
+          opacity={0.2}
           listening={false}
         />
       ))}

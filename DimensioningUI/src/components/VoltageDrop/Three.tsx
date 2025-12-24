@@ -5,10 +5,10 @@ import {
   Button,
   FormControl,
   Input,
-  List,
   MetricCard,
   Section,
 } from "@core/ui-headless";
+import { SampleDataBox } from "../Canvas/SampleDataBox";
 
 const SAMPLE_DATA = {
   current: "16",
@@ -116,50 +116,6 @@ function FormFields({
   );
 }
 
-type SampleDataBoxProps = {
-  onApply: () => void;
-};
-
-function SampleDataBox({ onApply }: SampleDataBoxProps) {
-  return (
-    <div className="bg-surface rounded-sm p-2 shadow-lg border border-section-border flex flex-col gap-2 w-24">
-      <List
-        headerText="Sample Data"
-        options={[
-          {
-            variant: "text",
-            label: "Current",
-            value: `${SAMPLE_DATA.current} A`,
-          },
-          {
-            variant: "text",
-            label: "Length",
-            value: `${SAMPLE_DATA.length} m`,
-          },
-          {
-            variant: "text",
-            label: "Resistivity",
-            value: SAMPLE_DATA.resistivity,
-          },
-          {
-            variant: "text",
-            label: "Section",
-            value: `${SAMPLE_DATA.crossSection} mm²`,
-          },
-        ]}
-      />
-      <Button
-        className="w-full"
-        variant="soft"
-        color="primary"
-        size="sm"
-        onClick={onApply}
-      >
-        Apply
-      </Button>
-    </div>
-  );
-}
 
 const Three = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => {
   const [current, setCurrent] = useState<string>("");
@@ -211,7 +167,31 @@ const Three = ({ cableEngine = null }: { cableEngine?: CableEngine | null }) => 
             badgeTitle="Voltage Drop"
           />
         </div>
-        <SampleDataBox onApply={handleApplySample} />
+        <SampleDataBox
+          options={[
+            {
+              variant: "text",
+              label: "Current",
+              value: `${SAMPLE_DATA.current} A`,
+            },
+            {
+              variant: "text",
+              label: "Length",
+              value: `${SAMPLE_DATA.length} m`,
+            },
+            {
+              variant: "text",
+              label: "Resistivity",
+              value: SAMPLE_DATA.resistivity,
+            },
+            {
+              variant: "text",
+              label: "Section",
+              value: `${SAMPLE_DATA.crossSection} mm²`,
+            },
+          ]}
+          onApply={handleApplySample}
+        />
       </div>
     </Section>
   );

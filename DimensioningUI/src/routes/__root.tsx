@@ -24,7 +24,7 @@ function NavButton({
   return (
     <Link
       to={to}
-      className="inline-flex rounded-sm items-center justify-center px-1 py-0.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-accent-500 hover:bg-accent-100 hover:text-black [&.active]:bg-accent-500 [&.active]:text-white"
+      className="w-full flex rounded-sm items-center justify-center px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-text-primary hover:bg-accent-100 hover:text-black [&.active]:bg-accent-500 [&.active]:text-white"
     >
       {children}
     </Link>
@@ -60,17 +60,9 @@ function RootComponent() {
     <div
       className={`min-h-screen bg-master-bg text-text-primary scrollbar ${isDark ? "dark" : ""}`}
     >
-      <div className="p-4 w-full max-w-6xl mx-auto">
-        <header className="mb-4">
-          <nav className="flex flex-wrap justify-center items-center gap-2 bg-surface rounded-sm p-1 border border-section-border">
-            <NavButton to="/">Home</NavButton>
-            <NavButton to="/resistivity">Resistivity</NavButton>
-            <NavButton to="/voltage-drop">Voltage Drop</NavButton>
-            <NavButton to="/cross-section">Cross Section</NavButton>
-            <NavButton to="/power-loss">Power Loss</NavButton>
-            <NavButton to="/derating">Derating</NavButton>
-            <NavButton to="/standard-sizes">Standard Sizes</NavButton>
-            <NavButton to="/canvas">Canvas</NavButton>
+      <div className="flex h-screen">
+        <aside className="w-30 bg-surface border-r border-section-border p-2 flex flex-col gap-2 dark">
+          <div>
             <Tooltip
               content={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
@@ -82,17 +74,31 @@ function RootComponent() {
                 icon={<HugeiconsIcon icon={isDark ? Sun01Icon : Moon02Icon} />}
               />
             </Tooltip>
-          </nav>
-        </header>
-        {isLoading ? (
-          <div className="text-center py-10">
-            <p className="text-gray-400">Loading WebAssembly module...</p>
           </div>
-        ) : (
-          <CableEngineContext.Provider value={cableEngine}>
-            <Outlet />
-          </CableEngineContext.Provider>
-        )}
+          <nav className="flex flex-col gap-1">
+            <NavButton to="/">Home</NavButton>
+            <NavButton to="/resistivity">Resistivity</NavButton>
+            <NavButton to="/voltage-drop">Voltage Drop</NavButton>
+            <NavButton to="/cross-section">Cross Section</NavButton>
+            <NavButton to="/power-loss">Power Loss</NavButton>
+            <NavButton to="/derating">Derating</NavButton>
+            <NavButton to="/standard-sizes">Standard Sizes</NavButton>
+            <NavButton to="/canvas">Canvas</NavButton>
+          </nav>
+        </aside>
+        <main className="flex-1 overflow-auto p-2">
+          <div className="bg-background h-full">
+            {isLoading ? (
+              <div className="text-center py-10">
+                <p className="text-gray-400">Loading WebAssembly module...</p>
+              </div>
+            ) : (
+              <CableEngineContext.Provider value={cableEngine}>
+                <Outlet />
+              </CableEngineContext.Provider>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

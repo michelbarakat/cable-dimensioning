@@ -283,41 +283,59 @@ const CableCanvas = ({
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  // Helper function to check if target is an editable input element
+  const isEditableElement = (target: HTMLElement): boolean => {
+    return (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable
+    );
+  };
+
+  // Helper function to check if popover should handle the key event
+  const shouldPopoverHandleKey = (isPopoverVisible: boolean, key: string): boolean => {
+    return isPopoverVisible && key !== "Escape";
+  };
+
+  // Helper function to check if key is a delete key
+  const isDeleteKey = (key: string): boolean => {
+    return key === "Delete" || key === "Backspace" || key === "Enter" || key === "Return";
+  };
+
+  // Helper function to check if keyboard event should be ignored
+  const shouldIgnoreKeyEvent = (target: HTMLElement, isPopoverVisible: boolean, key: string): boolean => {
+    return isEditableElement(target) || shouldPopoverHandleKey(isPopoverVisible, key);
+  };
+
+  // Handler for Space key
+  const handleSpaceKey = useCallback((e: KeyboardEvent): boolean => {
+    if (e.code === "Space" && !e.repeat) {
+      setIsSpacePressed(true);
+      e.preventDefault();
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Handler for delete keys on selected segments
+  const handleDeleteKey = useCallback((e: KeyboardEvent): boolean => {
+    if (isDeleteKey(e.key) && selectedSegmentIndices.length > 0) {
+      e.preventDefault();
+      deleteSelectedSegments();
+      return true;
+    }
+    return false;
+  }, [selectedSegmentIndices, deleteSelectedSegments]);
+
   // Handle keyboard events for space key and delete/backspace
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle keys if user is typing in an input field
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (shouldIgnoreKeyEvent(target, popover?.visible ?? false, e.key)) {
         return;
       }
 
-      // Don't handle keys if popover is open (let it handle ESC)
-      if (popover?.visible && e.key !== "Escape") {
-        return;
-      }
-
-      if (e.code === "Space" && !e.repeat) {
-        setIsSpacePressed(true);
-        e.preventDefault();
-        return;
-      }
-
-      // Handle delete/backspace/enter for selected segments
-      const isDelete = e.key === "Delete";
-      const isBackspace = e.key === "Backspace";
-      const isEnter = e.key === "Enter" || e.key === "Return";
-      const isDeleteKey = isDelete || isBackspace || isEnter;
-      const hasSelectedSegments = selectedSegmentIndices.length > 0;
-      const shouldDeleteSegments = isDeleteKey && hasSelectedSegments;
-      if (shouldDeleteSegments) {
-        e.preventDefault();
-        deleteSelectedSegments();
-      }
+      handleSpaceKey(e) || handleDeleteKey(e);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {

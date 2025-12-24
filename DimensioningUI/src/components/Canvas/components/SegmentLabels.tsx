@@ -81,28 +81,20 @@ export function SegmentLabels({ segments, scaleFactor, current }: SegmentLabelsP
               y={y}
               text={labelText}
               fontSize={10}
-              fontStyle="bold"
               align={align}
               verticalAlign={verticalAlign}
               padding={4}
               fill="#00000080"
-              shadowBlur={2}
-              shadowColor="#000000"
-              shadowOpacity={0.5}
             />
             <Text
               x={x}
               y={y + offsetY}
               text={deratedCurrentText}
               fontSize={10}
-              fontStyle="bold"
               align={align}
               verticalAlign="top"
               padding={4}
               fill={temperatureColor}
-              shadowBlur={2}
-              shadowColor="#ffffff"
-              shadowOpacity={0.8}
             />
           </Fragment>
         );
