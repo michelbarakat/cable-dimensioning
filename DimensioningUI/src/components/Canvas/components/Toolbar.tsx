@@ -10,7 +10,9 @@ import {
   Grid02Icon,
   Magnet01Icon,
   Delete02Icon,
+  Upload01Icon,
 } from "@hugeicons-pro/core-stroke-rounded";
+import { useRef } from "react";
 
 type ToolbarProps = {
   activeTool: Tool;
@@ -28,6 +30,7 @@ type ToolbarProps = {
   handleUndo: () => void;
   handleRedo: () => void;
   handleClear: () => void;
+  onFloorplanUpload: (file: File) => void;
 };
 
 type ToolButtonConfig = {
@@ -146,9 +149,26 @@ export function Toolbar({
   handleUndo,
   handleRedo,
   handleClear,
+  onFloorplanUpload,
 }: ToolbarProps) {
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < historyLength - 1;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      onFloorplanUpload(file);
+    }
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   return (
     <div className="bg-surface p-1">
@@ -198,6 +218,25 @@ export function Toolbar({
         <VerticalDivider />
 
         <ToolButtons activeTool={activeTool} setActiveTool={setActiveTool} />
+
+        <VerticalDivider />
+
+        <Tooltip content="Upload Floorplan" size="sm">
+          <IconButton
+            onClick={handleUploadClick}
+            variant="soft"
+            color="primary"
+            size="sm"
+            icon={<HugeiconsIcon icon={Upload01Icon} />}
+          />
+        </Tooltip>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{ display: "none" }}
+        />
 
         <div className="flex-1" />
 

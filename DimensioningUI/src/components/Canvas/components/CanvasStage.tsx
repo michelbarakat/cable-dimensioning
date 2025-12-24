@@ -22,6 +22,7 @@ type CanvasStageProps = {
   handleMouseUp: () => void;
   stageRef: React.RefObject<any>;
   cursor: string;
+  floorplanImage: HTMLImageElement | null;
 };
 
 export function CanvasStage({
@@ -44,10 +45,11 @@ export function CanvasStage({
   handleMouseUp,
   stageRef,
   cursor,
+  floorplanImage,
 }: CanvasStageProps) {
   return (
     <div
-      className="bg-white w-full relative"
+      className="bg-white w-full relative h-full"
       style={{ cursor }}
     >
       <Stage
@@ -73,6 +75,8 @@ export function CanvasStage({
           current={current}
           selectionBox={selectionBox}
           onSegmentDoubleClick={onSegmentDoubleClick}
+          floorplanImage={floorplanImage}
+          stageSize={stageSize}
         />
       </Stage>
     </div>

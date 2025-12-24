@@ -85,6 +85,7 @@ const CableCanvas = ({
     isCopper: boolean;
     temperature: TemperaturePreset;
   } | null>(null);
+  const [floorplanImage, setFloorplanImage] = useState<HTMLImageElement | null>(null);
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const doubleClickRef = useRef<boolean>(false);
@@ -269,18 +270,29 @@ const CableCanvas = ({
     [segments, setSegments, saveToHistory]
   );
 
-  // Update stage size based on container width
+  // Update stage size based on container dimensions
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
         const width = containerRef.current.clientWidth;
-        setStageSize({ width, height: 500 });
+        const height = containerRef.current.clientHeight;
+        setStageSize({ width, height });
       }
     };
 
     updateSize();
+    
+    // Use ResizeObserver to watch for container size changes
+    const resizeObserver = new ResizeObserver(updateSize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
     window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateSize);
+    };
   }, []);
 
   // Helper function to check if target is an editable input element
@@ -736,6 +748,26 @@ const CableCanvas = ({
     setHistoryIndex(0);
   };
 
+  const handleFloorplanUpload = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        setFloorplanImage(img);
+      };
+      img.onerror = () => {
+        console.error("Failed to load image");
+      };
+      if (e.target?.result) {
+        img.src = e.target.result as string;
+      }
+    };
+    reader.onerror = () => {
+      console.error("Failed to read file");
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
   // Helper function to zoom towards a focal point
   const zoomTowardsPoint = useCallback(
     (focalPoint: Point, newScale: number) => {
@@ -826,7 +858,7 @@ const CableCanvas = ({
 
   return (
     <Section title="Cable Simulation Canvas">
-      <div className="flex flex-col gap-3 p-2">
+      <div className="flex flex-col gap-3 p-2 h-full">
         <LoadingWarning cableEngine={cableEngine} />
 
         <InputFields
@@ -839,7 +871,7 @@ const CableCanvas = ({
           totalLength={totalLength}
         />
 
-        <div className="bg-surface rounded-sm border border-section-border divide-y divide-section-border">
+        <div className="bg-surface rounded-sm border border-section-border divide-y divide-section-border flex flex-col" style={{ height: "calc(100vh - 252px)" }}>
           <Toolbar
             activeTool={activeTool}
             setActiveTool={setActiveTool}
@@ -856,10 +888,11 @@ const CableCanvas = ({
             handleUndo={handleUndo}
             handleRedo={handleRedo}
             handleClear={handleClear}
+            onFloorplanUpload={handleFloorplanUpload}
           />
           <div
             ref={containerRef}
-            className="relative overflow-visible"
+            className="relative overflow-visible flex-1 min-h-50"
             onClick={(e) => {
               // Close popover when clicking outside of it
               // But don't close if it's a double-click (handled separately)
@@ -892,6 +925,7 @@ const CableCanvas = ({
               handleMouseUp={handleMouseUp}
               stageRef={stageRef}
               cursor={cursor}
+              floorplanImage={floorplanImage}
             />
             <Tooltip tooltip={tooltip} />
             <SegmentPropertiesPopover

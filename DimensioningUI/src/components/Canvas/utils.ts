@@ -1,4 +1,4 @@
-import type { Point } from "./types";
+import type { Point, CableSegment } from "./types";
 
 // Calculate distance between two points in pixels
 export const calculateDistance = (p1: Point, p2: Point): number => {
@@ -224,5 +224,28 @@ export const findConnectionPoint = (
     return seg1Start;
   }
   return null;
+};
+
+// Sort segment indices: non-selected first, then selected
+// Maintains relative order within each group for proper z-index layering
+export const getSortedSegmentIndices = (
+  segments: CableSegment[],
+  selectedSegmentIndices: number[]
+): number[] => {
+  const selectedSet = new Set(selectedSegmentIndices);
+  const nonSelected: number[] = [];
+  const selected: number[] = [];
+
+  segments.forEach((_, index) => {
+    if (selectedSet.has(index)) {
+      selected.push(index);
+    } else {
+      nonSelected.push(index);
+    }
+  });
+
+  // Return non-selected first, then selected (maintaining relative order)
+  // This ensures selected segments render on top (higher z-index)
+  return [...nonSelected, ...selected];
 };
 

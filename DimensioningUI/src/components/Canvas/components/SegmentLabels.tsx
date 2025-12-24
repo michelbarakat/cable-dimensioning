@@ -3,11 +3,13 @@ import { Text } from "react-konva";
 import type { CableSegment } from "../types";
 import { DEFAULTS } from "../../../lib/defaults";
 import { parseNumber } from "../../../lib/numberInput";
+import { getSortedSegmentIndices } from "../utils";
 
 type SegmentLabelsProps = {
   segments: CableSegment[];
   scaleFactor: number;
   current: string;
+  selectedSegmentIndices?: number[];
 };
 
 function getLabelPosition(
@@ -47,13 +49,22 @@ const getTemperatureColor = (temperature: string): string => {
   }
 };
 
-export function SegmentLabels({ segments, scaleFactor, current }: SegmentLabelsProps) {
+export function SegmentLabels({ 
+  segments, 
+  scaleFactor, 
+  current,
+  selectedSegmentIndices = []
+}: SegmentLabelsProps) {
   const baseCurrent = parseNumber(current);
   const hasValidCurrent = !isNaN(baseCurrent) && baseCurrent > 0;
+  
+  // Sort segment indices: non-selected first, then selected (maintaining relative order)
+  const sortedIndices = getSortedSegmentIndices(segments, selectedSegmentIndices);
 
   return (
     <>
-      {segments.map((segment, segIndex) => {
+      {sortedIndices.map((segIndex) => {
+        const segment = segments[segIndex];
         const crossSection = segment.crossSection ?? DEFAULTS.CROSS_SECTION;
         const isCopper = segment.isCopper ?? DEFAULTS.IS_COPPER;
         const temperature = segment.temperature ?? DEFAULTS.TEMPERATURE;
