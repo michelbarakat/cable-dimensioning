@@ -81,7 +81,7 @@ class WorkerManager {
       this.worker.onerror = (error) => {
         console.error('Worker error:', error);
         // Reject all pending requests
-        for (const [id, pending] of this.pendingRequests.entries()) {
+        for (const [_id, pending] of this.pendingRequests.entries()) {
           pending.reject(new Error(`Worker error: ${error.message}`));
         }
         this.pendingRequests.clear();
@@ -142,11 +142,11 @@ class WorkerManager {
   }
 
   async callFunction(functionName: string, ...args: any[]): Promise<any> {
-    return this.sendRequest({
+    return this.sendRequest<number>({
       type: 'call',
       functionName,
       args,
-    });
+    } as Omit<WorkerRequest, 'id'>);
   }
 
   async voltageDropChain(params: {
@@ -156,10 +156,10 @@ class WorkerManager {
     sections: Float64Array;
     count: number;
   }): Promise<number> {
-    return this.sendRequest({
+    return this.sendRequest<number>({
       type: 'voltageDropChain',
       params,
-    });
+    } as Omit<WorkerRequest, 'id'>);
   }
 
   terminate(): void {
@@ -170,7 +170,7 @@ class WorkerManager {
       this.initPromise = null;
       
       // Reject all pending requests
-      for (const [id, pending] of this.pendingRequests.entries()) {
+      for (const [_id, pending] of this.pendingRequests.entries()) {
         pending.reject(new Error('Worker terminated'));
       }
       this.pendingRequests.clear();

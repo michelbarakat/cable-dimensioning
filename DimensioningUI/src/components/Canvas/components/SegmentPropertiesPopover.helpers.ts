@@ -16,7 +16,7 @@ export const clampCrossSection = (value: number): number => {
   );
 };
 
-import type { TemperaturePreset } from "../../types";
+import type { TemperaturePreset } from "../types";
 
 export type PopoverData = {
   visible: boolean;

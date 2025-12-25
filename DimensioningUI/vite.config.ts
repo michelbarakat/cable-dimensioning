@@ -12,12 +12,52 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["wasm/dimensioning.wasm", "wasm/dimensioning.js"],
+      includeAssets: ["wasm/cable_dimensioning.wasm", "wasm/cable_dimensioning.js"],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,wasm}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.wasm$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "wasm-cache",
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.js$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "js-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+        ],
+      },
       manifest: {
-        name: "Dimensioning Tool",
+        name: "Cable Dimensioning - Web Assembly",
         short_name: "Dimensioning",
-        start_url: ".",
+        description: "Cable dimensioning tool with offline support",
+        start_url: "/",
         display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#000000",
+        icons: [
+          {
+            src: "/vite.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false, // Disable in dev to avoid conflicts
       },
     }),
   ],

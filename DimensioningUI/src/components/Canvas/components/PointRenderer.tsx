@@ -122,7 +122,7 @@ export function SegmentPoints({
   scaleFactor,
   hoveredPointIndex,
   selectedSegmentIndices,
-  activeTool,
+  activeTool: _activeTool,
 }: SegmentPointsProps) {
   const isSelected = selectedSegmentIndices.includes(segIndex);
   

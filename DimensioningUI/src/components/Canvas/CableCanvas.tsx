@@ -148,7 +148,6 @@ const CableCanvas = ({
     useSegmentOperations(
       segments,
       scale.toString(),
-      snapToGrid,
       setSegments,
       saveToHistory
     );

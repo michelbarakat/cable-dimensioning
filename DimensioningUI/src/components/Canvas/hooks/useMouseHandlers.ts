@@ -72,12 +72,16 @@ export function useMouseHandlers({
   const handleSelectTool = useMemo(() => createSelectToolHandler({ selectedSegmentIndices, getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, checkAndHandleDoubleClick, setSelectedSegmentIndices, setIsSelecting, setSelectionBox, setDragStart }), [selectedSegmentIndices, getNearestPoint, getNearestSegment, handleSelectedSegmentInteraction, checkAndHandleDoubleClick, setSelectedSegmentIndices, setIsSelecting, setSelectionBox, setDragStart]);
 
   const executeToolAction = useCallback((stagePoint: Point) => {
-    const handlers = createToolHandlers({ erase: handleEraseTool, line: handleLineTool, select: handleSelectTool });
     // Close popover if visible, but still execute the tool action
     if (popover?.visible) {
       setPopover(null);
     }
-    handlers[activeTool]?.(stagePoint);
+    // Only execute tool actions for tools that have handlers
+    // "calibrate" tool is handled separately in CableCanvas
+    if (activeTool !== "calibrate") {
+      const handlers = createToolHandlers({ erase: handleEraseTool, line: handleLineTool, select: handleSelectTool });
+      handlers[activeTool as keyof typeof handlers]?.(stagePoint);
+    }
   }, [popover, setPopover, activeTool, handleEraseTool, handleLineTool, handleSelectTool]);
 
   const handleMouseDown = useCallback((e: any) => {

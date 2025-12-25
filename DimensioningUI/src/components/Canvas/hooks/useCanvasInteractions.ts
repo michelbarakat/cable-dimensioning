@@ -1,56 +1,16 @@
 import { useCallback } from "react";
 import { parseNumber } from "../../../lib/numberInput";
-import type { CableSegment, Point, Tool, HoveredPoint } from "../types";
-import { snapToGridPoint, isConnectionPoint } from "../utils";
+import type { CableSegment, Point, HoveredPoint } from "../types";
+import { snapToGridPoint } from "../utils";
 import { calculateSegmentLength } from "../utils";
 
 export function useCanvasInteractions(
   segments: CableSegment[],
   scale: string,
   snapToGrid: boolean,
-  crossSection: string,
-  crossSectionValues: Map<string, number>,
-  activeTool: Tool,
-  isSpacePressed: boolean,
-  stagePosition: { x: number; y: number },
   selectedSegmentIndex: number | null,
   hoveredPointIndex: HoveredPoint | null,
   dragStart: Point,
-  isPanning: boolean,
-  isDraggingPoint: boolean,
-  isDraggingSegment: boolean,
-  isDrawing: boolean,
-  currentSegment: Point[],
-  setIsPanning: (value: boolean) => void,
-  setPanStart: (value: Point) => void,
-  setIsDraggingPoint: (value: boolean) => void,
-  setIsDraggingSegment: (value: boolean) => void,
-  setSelectedSegmentIndex: (value: number | null) => void,
-  setHoveredPointIndex: (value: HoveredPoint | null) => void,
-  setDragStart: (value: Point) => void,
-  setSegments: (segments: CableSegment[]) => void,
-  setCurrentSegment: (points: Point[]) => void,
-  setIsDrawing: (value: boolean) => void,
-  setPopover: (popover: {
-    visible: boolean;
-    x: number;
-    y: number;
-    connectionKey: string;
-    value: number;
-  } | null) => void,
-  popover: {
-    visible: boolean;
-    x: number;
-    y: number;
-    connectionKey: string;
-    value: number;
-  } | null,
-  saveToHistory: (segments: CableSegment[]) => void,
-  getNearestPoint: (point: Point, threshold?: number) => HoveredPoint | null,
-  getNearestSegment: (point: Point, threshold?: number) => number | null,
-  splitSegmentAtPoint: (segmentIndex: number, point: Point) => void,
-  deleteSegment: (segmentIndex: number) => void,
-  mergeSegments: (segmentIndex: number) => void
 ) {
   const scaleValue = parseNumber(scale);
 

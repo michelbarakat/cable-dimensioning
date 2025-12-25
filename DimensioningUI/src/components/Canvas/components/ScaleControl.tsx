@@ -1,5 +1,3 @@
-import React from "react";
-
 type ScaleControlProps = {
   scale: number;
   onIncrement: () => void;
@@ -22,7 +20,7 @@ export function ScaleControl({
         >
           −
         </button>
-        <span className="text-white font-mono min-w-[60px] text-center">
+        <span className="text-white font-mono min-w-7.5 text-center">
           {scale} px/m
         </span>
         <button

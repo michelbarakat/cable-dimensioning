@@ -82,6 +82,7 @@ export function CanvasStage({
           floorplanImage={floorplanImage}
           floorplanScale={floorplanScale}
           calibrationLine={calibrationLine}
+          stageSize={stageSize}
         />
       </Stage>
     </div>

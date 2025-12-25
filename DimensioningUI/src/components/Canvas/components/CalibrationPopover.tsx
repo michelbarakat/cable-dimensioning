@@ -21,7 +21,7 @@ export function CalibrationPopover({
 }: CalibrationPopoverProps) {
   const [dimension, setDimension] = useState<string>("");
 
-  useEscapeKey(() => {
+  useEscapeKey(popover?.visible ?? false, () => {
     if (popover?.visible) {
       setPopover(null);
       setDimension("");

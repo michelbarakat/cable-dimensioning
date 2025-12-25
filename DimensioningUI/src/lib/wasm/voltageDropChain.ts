@@ -1,6 +1,6 @@
 // Voltage drop chain calculation utilities
 
-import { getStackFunctions, hasStackFunctions, getHEAPF64 } from "./memoryUtils";
+import { getStackFunctions } from "./memoryUtils";
 
 type VoltageDropChainParams = {
   currentA: number;

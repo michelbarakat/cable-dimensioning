@@ -3,7 +3,7 @@ import { parseNumber } from "../../../../lib/numberInput";
 import { clampCrossSection, applySegmentUpdate } from "../SegmentPropertiesPopover.helpers";
 import type { PopoverData } from "../SegmentPropertiesPopover.helpers";
 import type { CableEngine } from "../../../../lib/cable_dimensioning";
-import type { TemperaturePreset } from "../../../types";
+import type { TemperaturePreset } from "../../types";
 
 export function useRoundToStandard(
   popover: PopoverData | null,

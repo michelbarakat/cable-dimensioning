@@ -1,6 +1,4 @@
 import { FormControl, Checkbox } from "@core/ui-headless";
-import { DEFAULTS } from "../../../lib/defaults";
-import { applySegmentUpdate } from "./SegmentPropertiesPopover.helpers";
 import type { PopoverData } from "./SegmentPropertiesPopover.helpers";
 import type { TemperaturePreset } from "../types";
 
@@ -14,11 +12,7 @@ type MaterialCheckboxProps = {
 export function MaterialCheckbox({
   popover,
   setPopover,
-  onUpdateSegment,
-  segments,
 }: MaterialCheckboxProps) {
-  const currentSegment = segments[popover.segmentIndex];
-  const currentCrossSection = currentSegment?.crossSection ?? DEFAULTS.CROSS_SECTION;
   
   return (
     <FormControl size="sm">

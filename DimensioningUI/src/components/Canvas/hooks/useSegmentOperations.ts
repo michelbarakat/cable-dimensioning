@@ -3,15 +3,11 @@ import { parseNumber } from "../../../lib/numberInput";
 import type { CableSegment, Point } from "../types";
 import {
   calculateSegmentLength,
-  snapToGridPoint,
-  pointExistsAtLocation,
-  findConnectionPoint,
 } from "../utils";
 
 export function useSegmentOperations(
   segments: CableSegment[],
   scale: string,
-  snapToGrid: boolean,
   setSegments: (segments: CableSegment[]) => void,
   saveToHistory: (segments: CableSegment[]) => void
 ) {

@@ -1,5 +1,17 @@
 // Module loading utilities for Emscripten WASM
 
+// Extend Window interface to include Module
+declare global {
+  interface Window {
+    Module?: {
+      cwrap?: (...args: any[]) => any;
+      calledRun?: boolean;
+      onRuntimeInitialized?: () => void;
+      [key: string]: any;
+    };
+  }
+}
+
 // Helper to check if Module is ready
 export function isModuleReady(): boolean {
   return !!(window.Module?.cwrap && window.Module.calledRun);

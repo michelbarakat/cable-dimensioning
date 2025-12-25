@@ -38,11 +38,19 @@ async function initModule(): Promise<void> {
     try {
       const wasmUrl = '/wasm/cable_dimensioning.wasm';
       
-      // Pre-check if WASM file is accessible
-      const response = await fetch(wasmUrl, { method: 'HEAD' });
-      if (!response.ok) {
-        reject(new Error(`WASM file not found: ${wasmUrl}`));
-        return;
+      // Pre-check if WASM file is accessible (works with service worker cache)
+      // In offline mode, the service worker will serve from cache
+      try {
+        const response = await fetch(wasmUrl, { method: 'HEAD', cache: 'default' });
+        if (!response.ok && response.status !== 0) {
+          // Status 0 can occur when served from cache in some browsers
+          reject(new Error(`WASM file not found: ${wasmUrl}`));
+          return;
+        }
+      } catch (fetchError) {
+        // If fetch fails (e.g., offline), try to proceed anyway
+        // The service worker cache might still serve the file
+        console.warn('WASM HEAD check failed, proceeding with load:', fetchError);
       }
 
       // Configure Module for worker environment

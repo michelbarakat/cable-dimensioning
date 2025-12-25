@@ -4,10 +4,16 @@ import {
   type CableEngine,
 } from "../lib/cable_dimensioning";
 import { useEffect, useState, createContext, useContext } from "react";
-import { Divider, IconButton, Tooltip } from "@core/ui-headless";
+import { Alert, Divider, IconButton, Tooltip } from "@core/ui-headless";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Sun01Icon, Moon02Icon } from "@hugeicons-pro/core-stroke-rounded";
+import {
+  Sun01Icon,
+  Moon02Icon,
+  UserWarning02Icon,
+} from "@hugeicons-pro/core-stroke-rounded";
 import logoWhite from "../assets/logo_white.png";
+import { OfflineIndicator } from "../components/OfflineIndicator";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
 // Create a React Context for cableEngine
 const CableEngineContext = createContext<CableEngine | null>(null);
@@ -53,6 +59,8 @@ function RootComponent() {
       });
   }, []);
 
+  const isOnline = useOnlineStatus();
+
   // Apply dark class to html element for Tailwind dark mode
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -94,19 +102,36 @@ function RootComponent() {
             <NavButton to="/canvas">Canvas</NavButton>
           </nav>
           <Divider />
-          <div>
-            <Tooltip
-              size="sm"
-              content={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              <IconButton
-                onClick={toggleTheme}
-                variant="soft"
-                color="warning"
+          <div className="flex flex-col gap-2 items-center">
+            <div className="flex items-center gap-2">
+              <Tooltip
                 size="sm"
-                icon={<HugeiconsIcon icon={isDark ? Sun01Icon : Moon02Icon} />}
-              />
-            </Tooltip>
+                content={
+                  isDark ? "Switch to Light Mode" : "Switch to Dark Mode"
+                }
+              >
+                <IconButton
+                  onClick={toggleTheme}
+                  variant="soft"
+                  color="warning"
+                  size="sm"
+                  icon={
+                    <HugeiconsIcon icon={isDark ? Sun01Icon : Moon02Icon} />
+                  }
+                />
+              </Tooltip>
+              <OfflineIndicator />
+            </div>
+            {!isOnline ? (
+              <Alert
+                size="sm"
+                variant="soft"
+                color="danger"
+                icon={<HugeiconsIcon icon={UserWarning02Icon} />}
+              >
+                Calculation assets from cache
+              </Alert>
+            ) : null}
           </div>
         </aside>
         <main className="flex-1 bg-neutral-950 overflow-auto p-2">

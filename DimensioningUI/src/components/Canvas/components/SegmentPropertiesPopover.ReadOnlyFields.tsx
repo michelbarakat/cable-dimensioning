@@ -33,7 +33,7 @@ export function ReadOnlyFields({
             id="popover-derating-factor"
             name="popover-derating-factor"
             type="text"
-            value={DEFAULTS.DERATING_FACTORS[popover.temperature].toFixed(2)}
+            value={DEFAULTS.DERATING_FACTORS[popover.temperature as keyof typeof DEFAULTS.DERATING_FACTORS].toFixed(2)}
             readOnly
             disabled
             size="sm"
