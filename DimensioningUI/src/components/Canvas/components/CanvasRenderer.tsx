@@ -51,27 +51,34 @@ function isValidSegment(segment: CableSegment | null | undefined): boolean {
 function FloorplanLayer({
   floorplanImage,
   floorplanScale,
-  stageSize,
+  scaleFactor,
 }: {
   floorplanImage: HTMLImageElement | null;
   floorplanScale: number;
-  stageSize: { width: number; height: number };
+  scaleFactor: number;
 }) {
   if (!floorplanImage) return null;
 
-  const scaledWidth = floorplanImage.width * floorplanScale;
-  const scaledHeight = floorplanImage.height * floorplanScale;
-  const x = (stageSize.width - scaledWidth) / 2;
-  const y = (stageSize.height - scaledHeight) / 2;
+  // Calculate the image dimensions in logical coordinates (meters)
+  // floorplanScale converts image pixels to logical units at base scale
+  const logicalWidth = floorplanImage.width * floorplanScale;
+  const logicalHeight = floorplanImage.height * floorplanScale;
+  
+  // Center the floorplan at logical origin (0, 0)
+  // This ensures it stays aligned with segments during zoom/pan
+  const logicalX = -logicalWidth / 2;
+  const logicalY = -logicalHeight / 2;
 
+  // Convert logical coordinates to stage coordinates by applying scaleFactor
+  // This matches how segments are rendered
   return (
     <Layer>
       <Image
         image={floorplanImage}
-        x={x}
-        y={y}
-        width={scaledWidth}
-        height={scaledHeight}
+        x={logicalX * scaleFactor}
+        y={logicalY * scaleFactor}
+        width={logicalWidth * scaleFactor}
+        height={logicalHeight * scaleFactor}
         listening={false}
         opacity={0.7}
       />
@@ -372,14 +379,13 @@ export function CanvasRenderer({
   floorplanImage,
   floorplanScale,
   calibrationLine,
-  stageSize,
 }: CanvasRendererProps) {
   const scaleFactor = baseScale > 0 ? scale / baseScale : 1;
   const sortedIndices = getSortedSegmentIndices(segments, selectedSegmentIndices);
 
   return (
     <>
-      <FloorplanLayer floorplanImage={floorplanImage} floorplanScale={floorplanScale} stageSize={stageSize} />
+      <FloorplanLayer floorplanImage={floorplanImage} floorplanScale={floorplanScale} scaleFactor={scaleFactor} />
       <DrawingLayer
         gridLines={gridLines}
         segments={segments}

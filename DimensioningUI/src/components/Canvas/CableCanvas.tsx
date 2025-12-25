@@ -992,14 +992,15 @@ const CableCanvas = ({
 
   const currentPoints = currentSegment.length > 0 ? currentSegment : [];
 
-  // Calculate floorplan scale dynamically based on current canvas scale
-  // This ensures the image scales correctly when zooming in/out
+  // Calculate floorplan scale at base scale (not current scale)
+  // This converts image pixels to logical units (meters) at the base zoom level
+  // The scaleFactor will then handle zoom scaling
   const floorplanScale = useMemo(() => {
     if (!floorplanPixelsPerMeter) return 1;
-    // Calculate scale factor: canvas scale (px/m) / image pixels per meter
-    // This scales the image so that 1 meter in the image matches 1 meter on the canvas
-    return scale / floorplanPixelsPerMeter;
-  }, [scale, floorplanPixelsPerMeter]);
+    // Calculate scale factor: base canvas scale (px/m) / image pixels per meter
+    // This scales the image so that 1 meter in the image matches 1 meter on the canvas at base scale
+    return baseScale / floorplanPixelsPerMeter;
+  }, [baseScale, floorplanPixelsPerMeter]);
 
   // Calculate total segments and length including current segment being drawn
   const totalSegments = segments.length + (currentSegment.length >= 2 ? 1 : 0);
@@ -1027,7 +1028,7 @@ const CableCanvas = ({
           totalLength={totalLength}
         />
 
-        <div className="bg-surface rounded-sm border border-section-border divide-y divide-section-border flex flex-col" style={{ height: "calc(100vh - 252px)" }}>
+        <div className="bg-surface rounded-sm border border-section-border divide-y divide-section-border flex flex-col" style={{ height: "calc(100vh - 300px)" }}>
           <Toolbar
             activeTool={activeTool}
             setActiveTool={setActiveTool}

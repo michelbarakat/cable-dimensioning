@@ -7,6 +7,7 @@ import {
   Input,
   MetricCard,
   Section,
+  Typography,
 } from "@core/ui-headless";
 import { SampleDataBox } from "../Canvas/SampleDataBox";
 
@@ -159,56 +160,61 @@ export default function PowerLoss({
   };
 
   return (
-    <Section title="Power Loss Calculation">
-      <div className="flex gap-2 items-start p-2">
-        <div className="flex flex-col gap-3 flex-1">
-          <FormFields
-            current={current}
-            length={length}
-            resistivity={resistivity}
-            crossSection={crossSection}
-            onCurrentChange={setCurrent}
-            onLengthChange={setLength}
-            onResistivityChange={setResistivity}
-            onCrossSectionChange={setCrossSection}
-            onCalculate={handleCalculate}
-            cableEngine={cableEngine}
-          />
-          <MetricCard
-            className="w-37.5"
-            label=""
-            value={result !== null && result >= 0 ? result.toFixed(2) : "—"}
-            unit="W"
-            badgeTitle="Power Loss"
+    <div className="flex flex-col gap-2">
+      <Typography level="h1" className="text-center">
+        POWER LOSS CALCULATION
+      </Typography>
+      <Section title="Power Loss Calculation">
+        <div className="flex gap-2 items-start p-2">
+          <div className="flex flex-col gap-3 flex-1">
+            <FormFields
+              current={current}
+              length={length}
+              resistivity={resistivity}
+              crossSection={crossSection}
+              onCurrentChange={setCurrent}
+              onLengthChange={setLength}
+              onResistivityChange={setResistivity}
+              onCrossSectionChange={setCrossSection}
+              onCalculate={handleCalculate}
+              cableEngine={cableEngine}
+            />
+            <MetricCard
+              className="w-37.5"
+              label=""
+              value={result !== null && result >= 0 ? result.toFixed(2) : "—"}
+              unit="W"
+              badgeTitle="Power Loss"
+            />
+          </div>
+          <SampleDataBox
+            options={[
+              {
+                variant: "text",
+                label: "Current",
+                value: `${SAMPLE_DATA.current} A`,
+              },
+              {
+                variant: "text",
+                label: "Length",
+                value: `${SAMPLE_DATA.length} m`,
+              },
+              {
+                variant: "text",
+                label: "Resistivity",
+                value: SAMPLE_DATA.resistivity,
+              },
+              {
+                variant: "text",
+                label: "Section",
+                value: `${SAMPLE_DATA.crossSection} mm²`,
+              },
+            ]}
+            onApply={handleApplySample}
           />
         </div>
-        <SampleDataBox
-          options={[
-            {
-              variant: "text",
-              label: "Current",
-              value: `${SAMPLE_DATA.current} A`,
-            },
-            {
-              variant: "text",
-              label: "Length",
-              value: `${SAMPLE_DATA.length} m`,
-            },
-            {
-              variant: "text",
-              label: "Resistivity",
-              value: SAMPLE_DATA.resistivity,
-            },
-            {
-              variant: "text",
-              label: "Section",
-              value: `${SAMPLE_DATA.crossSection} mm²`,
-            },
-          ]}
-          onApply={handleApplySample}
-        />
-      </div>
-    </Section>
+      </Section>
+    </div>
   );
 }
 

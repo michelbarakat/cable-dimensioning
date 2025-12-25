@@ -74,9 +74,13 @@ function RootComponent() {
   return (
     <div className="min-h-screen bg-master-bg text-text-primary scrollbar">
       <div className="flex h-screen">
-        <aside className="w-20 bg-surface border-r border-section-border p-2 flex flex-col gap-2 dark">
+        <aside className="w-20 bg-neutral-950 p-2 flex flex-col gap-2 dark">
           <div className="flex justify-center">
-            <img src={logoWhite} alt="SmartCraft" className="w-full h-auto max-h-12 object-contain" />
+            <img
+              src={logoWhite}
+              alt="SmartCraft"
+              className="w-full h-auto max-h-12 object-contain"
+            />
           </div>
           <Divider />
           <nav className="flex flex-col gap-1">
@@ -105,16 +109,18 @@ function RootComponent() {
             </Tooltip>
           </div>
         </aside>
-        <main className="flex-1 overflow-auto p-2">
+        <main className="flex-1 bg-neutral-950 overflow-auto p-2">
           <div className="bg-background h-full">
             {isLoading ? (
               <div className="text-center py-10">
                 <p className="text-gray-400">Loading WebAssembly module...</p>
               </div>
             ) : (
-              <CableEngineContext.Provider value={cableEngine}>
-                <Outlet />
-              </CableEngineContext.Provider>
+              <div className=" bg-surface p-2 rounded-sm">
+                <CableEngineContext.Provider value={cableEngine}>
+                  <Outlet />
+                </CableEngineContext.Provider>
+              </div>
             )}
           </div>
         </main>

@@ -11,6 +11,7 @@ import {
   MetricCard,
   Section,
   Select,
+  Typography,
 } from "@core/ui-headless";
 import { SampleDataBox } from "../Canvas/SampleDataBox";
 
@@ -141,37 +142,42 @@ export default function Derating({
   };
 
   return (
-    <Section title="Current Derating">
-      <div className="flex gap-2 items-start p-2">
-        <div className="flex flex-col gap-3 flex-1">
-          <FormFields
-            current={current}
-            temperature={temperature}
-            deratingFactor={deratingFactor}
-            onCurrentChange={setCurrent}
-            onTemperatureChange={setTemperature}
-            onCalculate={handleCalculate}
-            cableEngine={cableEngine}
-          />
-          <MetricCard
-            className="w-37.5"
-            label=""
-            value={result !== null && result >= 0 ? result.toFixed(2) : "—"}
-            unit="A"
-            badgeTitle="Derated Current"
+    <div className="flex flex-col gap-2">
+      <Typography level="h1" className="text-center">
+        CURRENT DERATING
+      </Typography>
+      <Section title="Current Derating">
+        <div className="flex gap-2 items-start p-2">
+          <div className="flex flex-col gap-3 flex-1">
+            <FormFields
+              current={current}
+              temperature={temperature}
+              deratingFactor={deratingFactor}
+              onCurrentChange={setCurrent}
+              onTemperatureChange={setTemperature}
+              onCalculate={handleCalculate}
+              cableEngine={cableEngine}
+            />
+            <MetricCard
+              className="w-37.5"
+              label=""
+              value={result !== null && result >= 0 ? result.toFixed(2) : "—"}
+              unit="A"
+              badgeTitle="Derated Current"
+            />
+          </div>
+          <SampleDataBox
+            options={[
+              {
+                variant: "text",
+                label: "Current",
+                value: `${SAMPLE_DATA.current} A`,
+              },
+            ]}
+            onApply={handleApplySample}
           />
         </div>
-        <SampleDataBox
-          options={[
-            {
-              variant: "text",
-              label: "Current",
-              value: `${SAMPLE_DATA.current} A`,
-            },
-          ]}
-          onApply={handleApplySample}
-        />
-      </div>
-    </Section>
+      </Section>
+    </div>
   );
 }
