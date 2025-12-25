@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { type CableEngine } from "../../lib/cable_dimensioning";
 import { isValidNumberInput, parseNumber } from "../../lib/numberInput";
 import {
@@ -130,6 +130,7 @@ export default function Three({
   const [resistivity, setResistivity] = useState<string>("");
   const [maxVoltageDrop, setMaxVoltageDrop] = useState<string>("");
   const [result, setResult] = useState<number | null>(null);
+  const [roundedResult, setRoundedResult] = useState<number | null>(null);
 
   const handleApplySample = () => {
     setCurrent(SAMPLE_DATA.current);
@@ -158,6 +159,31 @@ export default function Three({
     }
   };
 
+  // Calculate rounded value whenever result changes
+  useEffect(() => {
+    const calculateRounded = async () => {
+      if (!cableEngine) {
+        setRoundedResult(null);
+        return;
+      }
+      
+      if (result === null || result < 0) {
+        setRoundedResult(null);
+        return;
+      }
+
+      try {
+        const rounded = await cableEngine.roundToStandard(result);
+        setRoundedResult(rounded);
+      } catch (error) {
+        console.error("Error rounding to standard:", error);
+        setRoundedResult(null);
+      }
+    };
+
+    calculateRounded();
+  }, [result, cableEngine]);
+
   return (
     <Section title="Three-Phase Cross-Section">
       <div className="flex gap-2 items-start p-2">
@@ -180,6 +206,13 @@ export default function Three({
             value={result !== null && result >= 0 ? result.toFixed(2) : "—"}
             unit="mm²"
             badgeTitle="Cross-Section"
+          />
+          <MetricCard
+            className="w-37.5"
+            label=""
+            value={roundedResult !== null && roundedResult >= 0 ? roundedResult.toFixed(2) : "—"}
+            unit="mm²"
+            badgeTitle="Cross-Section Rounded to Standard"
           />
         </div>
         <SampleDataBox
