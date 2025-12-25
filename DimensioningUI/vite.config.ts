@@ -50,7 +50,7 @@ export default defineConfig({
         theme_color: "#000000",
         icons: [
           {
-            src: "/vite.svg",
+            src: "/smartcraft.png",
             sizes: "any",
             type: "image/svg+xml",
           },

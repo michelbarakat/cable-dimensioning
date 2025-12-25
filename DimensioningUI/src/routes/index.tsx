@@ -12,7 +12,8 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <div className="flex flex-col gap-2">
-      <Typography level="h1" className="text-center">
+      <Typography level="h1" className="text-center">SmartCraft Sparkline</Typography>
+      <Typography level="h3" className="text-center">
         CABLE DIMENSIONING - WEB ASSEMBLY
       </Typography>
       <AboutSection />

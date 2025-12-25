@@ -37,6 +37,16 @@ const features: Feature[] = [
     title: "Standard Sizes",
     description: "Round calculated cross-sections to standard cable sizes",
   },
+  {
+    icon: "✏️",
+    title: "Interactive Canvas",
+    description: "Draw cable segments on a canvas with floorplan support, real-time voltage drop calculations, and intuitive editing tools",
+  },
+  {
+    icon: "📱",
+    title: "Offline Mode",
+    description: "Works offline after initial load - all assets are cached for offline use",
+  },
 ];
 
 function FeatureItem({ icon, title, description }: Feature) {
